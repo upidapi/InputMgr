@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Literal
-from Mine.OsAbstractions.Abstract.Events._BaseEvent import _BaseEvent
+from Mine.Events._BaseEvent import _BaseEvent
 
 
 class MouseEvent:

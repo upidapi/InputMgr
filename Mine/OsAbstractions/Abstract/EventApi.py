@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from Mine.OsAbstractions.Abstract.Events import any_event, KeyboardEvent
+from Mine.Events import any_event, KeyboardEvent
 
 
 class EventApi(ABC):
@@ -16,16 +16,16 @@ class EventApi(ABC):
     #   using meth::fetch_new_events
 
     @classmethod
-    def _dispatch_event_block(cls, event: any_event) -> None:
+    def dispatch_event_block(cls, event: any_event) -> None:
         """ makes it so that the next event that is dispatched with the {}"""
 
         # todo: add some warning for if a event stys blocked for too long
-        #   that would mean that the programmatically generated user input
-        #   failed.
+        #   since that would mean that the programmatically generated user
+        #   input failed.
         cls._blocked_events.add(event)
 
     @classmethod
-    def _dispatch_event(cls, event: any_event) -> None:
+    def dispatch_event(cls, event: any_event) -> None:
         """ helper function to add a new event to the event stack """
 
         # check if event is blocked

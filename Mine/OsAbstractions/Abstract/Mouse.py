@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from Mine.ViritallKeys.VkEnum import KeyData
 
 
-class AbsKeyboard(ABC):
+class AbsMouse(ABC):
     @staticmethod
     @abstractmethod
     def set_pos(x: int, y: int):

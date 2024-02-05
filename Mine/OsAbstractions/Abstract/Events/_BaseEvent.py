@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+import dataclasses
 
 
 def dict_p_print(a: dict, indent=0):
@@ -14,10 +14,13 @@ def dict_p_print(a: dict, indent=0):
     )
 
 
-@dataclass
+@dataclasses.dataclass
 class _BaseEvent:
-    time: int
-    raw: any
+    # used to check if 2 events are in principle equal
+    time_ms: float = dataclasses.field(compare=False)
+
+    # only for debug
+    raw: any = dataclasses.field(compare=False)
 
     def print_event(self):
         x = {

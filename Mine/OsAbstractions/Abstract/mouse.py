@@ -8,15 +8,26 @@ from Mine.ViritallKeys.VkEnum import KeyData
 class AbsKeyboard(ABC):
     @staticmethod
     @abstractmethod
-    def press(vk_code: int, down: bool) -> None:
+    def set_pos(x: int, y: int):
         raise NotImplementedError
 
     @staticmethod
     @abstractmethod
-    def update_mapping() -> None:
+    def get_pos() -> (int, int):
         raise NotImplementedError
 
     @staticmethod
     @abstractmethod
-    def key_data_to_vk_code(key_data: KeyData) -> int:
+    def scroll(dx: float, dy: float):
+        # might be int, int and not float, float
+        raise NotImplementedError
+
+    @staticmethod
+    @abstractmethod
+    def button_up(vk_code: int):
+        raise NotImplementedError
+
+    @staticmethod
+    @abstractmethod
+    def button_down(vk_code: int):
         raise NotImplementedError

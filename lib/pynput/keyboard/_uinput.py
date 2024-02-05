@@ -50,7 +50,7 @@ class KeyCode(_base.KeyCode):
     # Be explicit about fields
     _x_name = None
     _kernel_name = None
-# pylint: enable=W0212
+    # pylint: enable=W0212
 
     @classmethod
     def _from_name(cls, x_name, kernel_name, **kwargs):

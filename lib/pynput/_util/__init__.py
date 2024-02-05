@@ -54,7 +54,8 @@ def backend(package):
     """
     backend_name = os.environ.get(
         'PYNPUT_BACKEND_{}'.format(package.rsplit('.')[-1].upper()),
-        os.environ.get('PYNPUT_BACKEND', None))
+        os.environ.get('PYNPUT_BACKEND', None)
+    )
     if backend_name:
         modules = [backend_name]
     elif sys.platform == 'darwin':

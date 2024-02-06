@@ -6,17 +6,53 @@ from Mine.ViritallKeys.VkEnum import KeyData
 
 
 class AbsKeyboard(ABC):
-    @staticmethod
+    class InvalidKeyException(Exception):
+        """The exception raised when an invalid ``key`` parameter is passed to
+        :meth:`AbsKeyboard.press`
+
+        Its first argument is the ``key`` parameter.
+        """
+        pass
+
+    class InvalidCharacterException(Exception):
+        """The exception raised when an invalid character is encountered in
+        the string passed to :meth:`Controller.key_data_to_vk_code`.
+
+        Its first argument is the index of the character in the string, and the
+        second the character.
+        """
+        pass
+
+    @classmethod
     @abstractmethod
-    def press(vk_code: int, down: bool) -> None:
+    def is_pressed(cls, vk_code: int) -> bool:
         raise NotImplementedError
 
-    @staticmethod
+    @classmethod
     @abstractmethod
-    def update_mapping() -> None:
+    def press(cls, vk_code: int, down: bool) -> None:
         raise NotImplementedError
 
-    @staticmethod
+    @classmethod
     @abstractmethod
-    def key_data_to_vk_code(key_data: KeyData) -> int:
+    def update_mapping(cls) -> None:
+        """
+        updates the internal keyboard key to vk_code mapping
+        """
+        raise NotImplementedError
+
+    @classmethod
+    @abstractmethod
+    def key_data_to_vk_code(cls, key_data: KeyData) -> int:
+        """
+        converts some data to a keycode e.g. "NP_0" to the keycode for numpad 0
+        """
+        raise NotImplementedError
+
+    @classmethod
+    @abstractmethod
+    def key_to_vk_code(cls, key: str) -> int:
+        """
+        converts a key from the keyboard e.g. "a", "#", "^" to a keycode
+        """
         raise NotImplementedError

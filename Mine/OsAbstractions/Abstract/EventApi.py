@@ -15,6 +15,9 @@ class EventApi(ABC):
     # todo add a check to make sure that you've started listening before
     #   using meth::fetch_new_events
 
+    def __init__(self):
+        raise TypeError("you are not ment to make instances of this class")
+
     @classmethod
     def dispatch_event_block(cls, event: any_event) -> None:
         """ makes it so that the next event that is dispatched with the {}"""

@@ -1,10 +1,13 @@
 import platform as _platform
+from typing import Literal
 
-from Mine.OsAbstractions.Abstract import Backend
+from Mine.OsAbstractions.Abstract import AbsBackend
+
+
+_system = _platform.system()
 
 
 def _get_backend():
-    _system = _platform.system()
     if _system == 'Windows':
         from Windows import WindowsBackend
 
@@ -28,8 +31,12 @@ def _get_backend():
         raise OSError(f"Unsupported platform \"{_system}\"")
 
 
-_back_end: Backend = _get_backend()
+_back_end: AbsBackend = _get_backend()
 
 
-def get_backend():
+def get_backend() -> AbsBackend:
     return _back_end
+
+
+def get_backend_type():
+    return _system

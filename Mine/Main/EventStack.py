@@ -1,7 +1,7 @@
 import time
 from typing import Callable
 
-from Mine.OsAbstractions.Abstract import get_backend
+from Mine.OsAbstractions import get_backend
 
 _event_api = get_backend().event_api
 

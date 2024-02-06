@@ -8,6 +8,7 @@ class KeyboardEvent:
     class _BaseKeyboardEvent(_BaseEvent):
         raw: any
         vk_code: int
+        char: str
 
     @dataclass
     class KeySend(_BaseKeyboardEvent):

@@ -40,31 +40,26 @@ class KeyCode(object):
     A :class:`KeyCode` represents the description of a key code used by the
     operating system.
     """
-    #: The names of attributes used as platform extensions.
-    _PLATFORM_EXTENSIONS = []
 
     def __init__(self, vk=None, char=None, is_dead=False, **kwargs):
         self.vk = vk
         self.char = six.text_type(char) if char is not None else None
         self.is_dead = is_dead
 
+        self.combining = None
+
         if self.is_dead:
             try:
                 self.combining = unicodedata.lookup(
                     'COMBINING ' + unicodedata.name(self.char))
+
+                if not self.combining:
+                    raise KeyError(char)
             except KeyError:
                 self.is_dead = False
-                self.combining = None
-            if self.is_dead and not self.combining:
-                raise KeyError(char)
-        else:
-            self.combining = None
 
-        for key in self._PLATFORM_EXTENSIONS:
-            setattr(self, key, kwargs.pop(key, None))
         if kwargs:
             raise ValueError(kwargs)
-
 
     def __repr__(self):
         if self.is_dead:

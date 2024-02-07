@@ -116,58 +116,63 @@ class Layout(object):
         """ A key in a keyboard layout. """
 
         def __init__(self, normal, shifted, alt, alt_shifted):
-            self._values = (
-                normal,
-                shifted,
-                alt,
-                alt_shifted)
+            self._normal = normal
+            self._shifted = shifted
+            self._alt = alt
+            self._alt_shifted = alt_shifted
 
         def __str__(self):
-            return ('<'
-                    'normal: {}, '
-                    'shifted: {}, '
-                    'alternative: {}, '
-                    'shifted alternative: {}>').format(
-                self.normal, self.shifted, self.alt, self.alt_shifted)
+            return (
+                f'<'
+                f'normal: \"{self.normal}\", '
+                f'shifted: \"{self.shifted}\", '
+                f'alternative: \"{self.alt}\", '
+                f'shifted alternative: \"{self.alt_shifted}\">'
+            )
 
         __repr__ = __str__
 
+        def _to_list(self):
+            return [self.normal, self.shifted, self.alt, self.alt_shifted]
+
         def __iter__(self):
-            return iter(self._values)
+            return iter(self._to_list())
 
         def __getitem__(self, i):
-            return self._values[i]
+            return self._to_list()[i]
 
         @property
         def normal(self):
-            """The normal key.
-            """
-            return self._values[0]
+            """ The normal key. """
+            return self._normal
 
         @property
         def shifted(self):
-            """The shifted key.
-            """
-            return self._values[1]
+            """ The shifted key. """
+            return self._shifted
 
         @property
         def alt(self):
-            """The alternative key.
-            """
-            return self._values[2]
+            """ The alternative key. """
+            return self._alt
 
         @property
         def alt_shifted(self):
-            """The shifted alternative key.
-            """
-            return self._values[3]
+            """ The shifted alternative key. """
+            return self._alt_shifted
 
     def __init__(self):
         self._vk_table = self._load()
         self._char_table = {}
 
         for vk, keys in self._vk_table.items():
-            for i, key in enumerate(keys):
+            for key, modifier_keys in (
+                    (keys.normal, set()),
+                    (keys.shifted, {Key.shift}),
+                    (keys.alt, {Key.alt_gr}),
+                    (keys.alt_shifted, {Key.shift, Key.alt_gr}),
+            ):
+
                 if key is None:
                     continue
 
@@ -177,10 +182,7 @@ class Layout(object):
                     continue
 
                 self._char_table[char] = (
-                    vk,
-                    set()
-                    | {Key.shift} if i & 0b1 else set()
-                                                  | {Key.alt_gr} if i & 0b10 else set()
+                    vk, modifier_keys
                 )
 
     def for_vk(self, vk, modifiers):
@@ -195,10 +197,18 @@ class Layout(object):
         :raises KeyError: if ``vk`` is an unknown key
         """
 
-        return self._vk_table[vk][
-            0
-            | (1 if Key.shift in modifiers else 0)
-            | (2 if Key.alt_gr in modifiers else 0)]
+        full_key = self._vk_table[vk]
+
+        if Key.shift in modifiers:
+            if Key.alt_gr in modifiers:
+                return full_key.alt_shifted
+
+            return full_key.shifted
+
+        if Key.alt_gr in modifiers:
+            return full_key.alt
+
+        return full_key.normal
 
     def for_char(self, char):
         """Reads a virtual key code and modifier state for a character.
@@ -210,30 +220,6 @@ class Layout(object):
         :raises KeyError: if ``vk`` is an unknown key
         """
         return self._char_table[char]
-
-    @functools.lru_cache()
-    def _load(self):
-        """
-        Loads the keyboard layout.
-
-        For simplicity, we call out to the ``dumpkeys`` binary. In the future,
-        we may want to implement this ourselves.
-        """
-        result = {}
-        for keycode, names in self.KEYCODE_RE.findall(
-                subprocess.check_output(
-                    ['dumpkeys', '--full-table', '--keys-only']
-                ).decode('utf-8')):
-            vk = int(keycode)
-            keys = tuple(
-                self._parse(vk, name)
-                for name in names.split()[:4]
-            )
-            # todo figure out wht this does
-            if any(key is not None for key in keys):
-                result[vk] = self.Key(*keys)
-
-        return result
 
     @staticmethod
     def _parse(vk, name):
@@ -262,20 +248,54 @@ class Layout(object):
 
             # ...and finally special dumpkeys names
             try:
-                return KeyCode.from_char({
-                                             'one': '1',
-                                             'two': '2',
-                                             'three': '3',
-                                             'four': '4',
-                                             'five': '5',
-                                             'six': '6',
-                                             'seven': '7',
-                                             'eight': '8',
-                                             'nine': '9',
-                                             'zero': '0'
-                                         }[name])
+                return KeyCode.from_char(
+                    {
+                        'one': '1',
+                        'two': '2',
+                        'three': '3',
+                        'four': '4',
+                        'five': '5',
+                        'six': '6',
+                        'seven': '7',
+                        'eight': '8',
+                        'nine': '9',
+                        'zero': '0'
+                    }[name])
+
             except KeyError:
                 pass
+
+    @functools.lru_cache()
+    def _load(self):
+        """
+        Loads the keyboard layout.
+
+        For simplicity, we call out to the ``dumpkeys`` binary. In the future,
+        we may want to implement this ourselves.
+        """
+        result = {}
+
+        raw_data = subprocess.check_output(
+            ['dumpkeys', '--full-table', '--keys-only']
+        ).decode('utf-8')
+
+        key_data = self.KEYCODE_RE.findall(raw_data)
+
+        for keycode, names in key_data:
+
+            vk = int(keycode)
+            keys = tuple(
+                self._parse(vk, name)
+                for name in names.split()[:4]
+            )
+
+            # if we don't find any keys, skip it
+            if all(key is None for key in keys):
+                continue
+
+            result[vk] = self.Key(*keys)
+
+        return result
 
 
 class LinuxKeyboard(AbsKeyboard):
@@ -309,13 +329,6 @@ class LinuxKeyboard(AbsKeyboard):
         raise NotImplementedError
 
 
-# todo make into args
-#   somehow make into args for the platform
-#   instead of consts
-DEVICE_PATHS = []
-SUPPRESS = False
-
-
 class ListenerMixin(object):
     """A mixin for *uinput* event listeners.
 
@@ -325,8 +338,7 @@ class ListenerMixin(object):
     #: The events for which to listen
     _EVENTS = tuple()
 
-    def __init__(self, *args, **kwargs):
-        super(ListenerMixin, self).__init__(*args, **kwargs)
+    def __init__(self):
         self._dev = self._device(
             DEVICE_PATHS or evdev.list_devices()
         )
@@ -376,7 +388,6 @@ class ListenerMixin(object):
         else:
             return dev
 
-
     _EVENTS = (
         evdev.ecodes.EV_KEY,)
 
@@ -425,6 +436,7 @@ class ListenerMixin(object):
             self.on_press(key)
         else:
             self.on_release(key)
+
 
 try:
     #: The keyboard layout.

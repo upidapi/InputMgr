@@ -395,7 +395,8 @@ class Listener(ListenerMixin, _base.Listener):
         Key.alt_gr.value.vk: Key.alt_gr,
         Key.shift.value.vk: Key.shift,
         Key.shift_l.value.vk: Key.shift,
-        Key.shift_r.value.vk: Key.shift}
+        Key.shift_r.value.vk: Key.shift
+    }
 
     def __init__(self, *args, **kwargs):
         super(Listener, self).__init__(*args, **kwargs)

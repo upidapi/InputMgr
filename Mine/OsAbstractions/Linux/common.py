@@ -10,23 +10,108 @@ import evdev
 
 ALLOW_UNKNOWN_KEYCODES = False
 
+# todo make into args
+#   somehow make into args for the platform
+#   instead of consts
+#   probably by adding functions
+#     eg:
+#     def supress(),
+#     def un_supress()
+#     def set_device_paths()
+
+DEVICE_PATHS = []
+SUPPRESS = False
+
 
 # https://python-evdev.readthedocs.io/en/latest/tutorial.html#reading-events-using-asyncio
 # devices = [evdev.InputDevice(path) for path in evdev.list_devices()]
 
+
 class LinuxEventApi(EventApi):
+    _MODIFIER_MAP: dict[Key, Key] = {
+        Key.alt.value.vk: Key.alt,
+        Key.alt_l.value.vk: Key.alt,
+        Key.alt_r.value.vk: Key.alt,
+        Key.alt_gr.value.vk: Key.alt_gr,
+        Key.shift.value.vk: Key.shift,
+        Key.shift_l.value.vk: Key.shift,
+        Key.shift_r.value.vk: Key.shift
+    }
+
     # todo add typehint
-    _devices: [] = []
+    _devices = []
+    _modifiers = set()
+    @classmethod
+    def _get_devices(cls, paths):
+        """Attempts to load a readable keyboard device.
+
+        :param paths: A list of paths.
+
+        :return: a compatible device
+        """
+        devices = []
+        for path in paths:
+            # Open the device
+            try:
+                device = evdev.InputDevice(path)
+            except OSError:
+
+                continue
+
+            devices.append(device)
+            # # Does this device provide more handled event codes?
+            # capabilities = next_dev.capabilities()
+            # next_count = sum(
+            #     len(codes)
+            #     for event, codes in capabilities.items()
+            #     if event in cls._EVENTS
+            # )
+            #
+            # if next_count > count:
+            #     dev = next_dev
+            #     count = next_count
+            # else:
+            #     next_dev.close()
+
+        if not devices:
+            # todo prob change to "no devices found"
+            #   since this includes mice etc
+            raise OSError('no keyboard device available')
+
+        return devices
 
     @classmethod
     def start_listening(cls) -> None:
-        """ a startup method that will be called when the EventStack is started """
-        raise NotImplementedError
+        cls._devices = cls._get_devices(
+            DEVICE_PATHS or evdev.list_devices()
+        )
+        # todo add support to supress individual devices
+        if SUPPRESS:
+            for device in cls._devices:
+                device.grab()  # mine!
+
+        cls._layout = LAYOUT
+        cls._modifiers = set()
 
     @classmethod
     def stop_listening(cls) -> None:
-        """ a cleanup method that will be called when the EventStack is stopped """
-        raise NotImplementedError
+        for device in cls._devices:
+            device.close()
+
+    @classmethod
+    def _handle_modifyer_key(cls, event_code, event_val):
+        is_press = event_val in (
+            evdev.events.KeyEvent.key_down,
+            evdev.events.KeyEvent.key_hold,
+        )
+
+        if event_code in cls._MODIFIER_MAP:
+            modifier = cls._MODIFIER_MAP[event_code]
+            if is_press:
+                cls._modifiers.add(modifier)
+            elif modifier in cls._modifiers:
+                cls._modifiers.remove(modifier)
+
 
     @classmethod
     def _convert_raw_event_to_event(cls, event) -> any_event:
@@ -58,24 +143,31 @@ class LinuxEventApi(EventApi):
         # keyboard/click event
         if event_type == ecodes.EV_KEY:
             dc = {
-                0: KeyboardEvent.KeyUp,
-                1: KeyboardEvent.KeyDown,
-                2: KeyboardEvent.KeySend,
+                evdev.events.KeyEvent.key_up: KeyboardEvent.KeyUp,
+                evdev.events.KeyEvent.key_down: KeyboardEvent.KeyDown,
+                evdev.events.KeyEvent.key_hold: KeyboardEvent.KeySend,
             }[event_val]
 
+            vk = event_code
+
+            cls._handle_modifyer_key(vk, event_val)
+
             try:
-                keycode = ecodes.keys[event_code]
+                # keycode = ecodes.keys[vk]
+                key = cls._layout.for_vk(vk, cls._modifiers)
+
             except KeyError:
                 if not ALLOW_UNKNOWN_KEYCODES:
                     raise TypeError(
-                        f"unknown keycode detected {event_code:=} {event:=}"
+                        f"unknown keycode detected {vk:=} {event:=}"
                     )
-                keycode = event_code
+                keycode = vk
+
 
             return dc(
                 raw=event,
                 time_ms=time_ms,
-                vk_code=keycode
+                vk_code=vk
             )
 
     @classmethod

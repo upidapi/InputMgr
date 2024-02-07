@@ -30,7 +30,7 @@ from pynput._util import backend, Events
 
 backend = backend(__name__)
 KeyCode = backend.KeyCode
-Key = backend.Key
+Key = backend.LinuxKeyEnum
 Controller = backend.Controller
 Listener = backend.Listener
 del backend

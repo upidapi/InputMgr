@@ -3,24 +3,23 @@ from typing import Literal
 
 from Mine.OsAbstractions.Abstract import AbsBackend
 
-
 _system = _platform.system()
 
 
 def _get_backend():
     if _system == 'Windows':
-        from Windows import WindowsBackend
+        from Mine.OsAbstractions.Windows import WindowsBackend
 
         return WindowsBackend
 
     elif _system == 'Linux':
-        from Linux import LinuxBackend
+        from Mine.OsAbstractions.Linux import LinuxBackend
 
         return LinuxBackend
 
     elif _system == 'Darwin':
         try:
-            from Darwin import DarwinBackend
+            from Mine.OsAbstractions.Darwin import DarwinBackend
 
             return DarwinBackend
 

@@ -199,6 +199,7 @@ class Layout(object):
     def __init__(self):
         def as_char(k):
             return k.value.char if isinstance(k, Key) else k.char
+
         self._vk_table = self._load()
         self._char_table = {
             as_char(key): (

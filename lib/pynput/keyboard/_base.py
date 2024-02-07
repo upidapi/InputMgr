@@ -53,10 +53,11 @@ class KeyCode(object):
                 self.combining = unicodedata.lookup(
                     'COMBINING ' + unicodedata.name(self.char))
 
-                if not self.combining:
-                    raise KeyError(char)
             except KeyError:
                 self.is_dead = False
+            else:
+                if not self.combining:
+                    raise KeyError(char)
 
         if kwargs:
             raise ValueError(kwargs)

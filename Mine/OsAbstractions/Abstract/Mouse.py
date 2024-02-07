@@ -2,8 +2,6 @@
 
 from abc import ABC, abstractmethod
 
-from Mine.ViritallKeys.VkEnum import KeyData
-
 
 class AbsMouse(ABC):
     @staticmethod

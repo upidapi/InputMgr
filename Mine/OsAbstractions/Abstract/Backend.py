@@ -1,16 +1,12 @@
 from typing import Type
 
-from Mine.OsAbstractions.Abstract import EventApi, AbsMouse, AbsKeyboard
+from Mine.OsAbstractions.Abstract.EventApi import EventApi
+from Mine.OsAbstractions.Abstract.Mouse import AbsMouse
+from Mine.OsAbstractions.Abstract.Keyboard import AbsKeyboard
 
 
 class AbsBackend:
-    def __init__(
-            self,
-            event_stack,
-            mouse_controller,
-            keyboard_controller
-    ):
-        self.event_api: Type[EventApi] = event_stack
-        self.mouse_controller: Type[AbsMouse] = mouse_controller
-        self.keyboard_controller: Type[AbsKeyboard] = keyboard_controller
+    event_api: Type[EventApi]
+    mouse_controller: Type[AbsMouse]
+    keyboard_controller: Type[AbsKeyboard]
 

@@ -7,11 +7,9 @@ from Mine.ViritallKeys.VkEnum import KeyData
 class KeyboardEvent:
     @dataclass
     class _BaseKeyboardEvent(_BaseEvent):
-        raw: any
         key_data: KeyData
-        char: str
+        # char: str
 
-    @dataclass
     class KeySend(_BaseKeyboardEvent):
         """
         This will happen when a key is pressed. But keeps being sent
@@ -19,21 +17,16 @@ class KeyboardEvent:
 
         Good for text input, bad for detecting when a key is pressed
         """
-        pass
 
-    @dataclass
     class KeyDown(_BaseKeyboardEvent):
         """
         Called when a key is pressed
         """
-        pass
 
-    @dataclass
     class KeyUp(_BaseKeyboardEvent):
         """
         Called when a key is unpressed
         """
-        pass
 
     event_types = KeyDown | KeyUp | KeySend
 
@@ -79,4 +72,3 @@ class KeyboardEvent:
     #             f"{event.message:=}, "
     #             f"message_name={HookConstants.msg_to_name(event.message)}"
     #         )
-

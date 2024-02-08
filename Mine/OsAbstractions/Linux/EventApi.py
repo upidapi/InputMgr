@@ -7,6 +7,7 @@ from evdev import ecodes
 
 from Mine.Events import KeyboardEvent, any_event
 from Mine.OsAbstractions.Abstract import EventApi
+from Mine.OsAbstractions.Linux.StateMgr import StateMgr
 from Mine.OsAbstractions.Linux.common import LinuxKeyEnum, LinuxKeyData, LinuxLayout
 
 
@@ -27,16 +28,6 @@ SUPPRESS = False
 
 
 class LinuxEventApi(EventApi):
-    MODIFIER_MAP: dict[LinuxKeyData, LinuxKeyData] = {
-        LinuxKeyEnum.alt.vk: LinuxKeyEnum.alt,
-        LinuxKeyEnum.alt_l.vk: LinuxKeyEnum.alt,
-        LinuxKeyEnum.alt_r.vk: LinuxKeyEnum.alt,
-        LinuxKeyEnum.alt_gr.vk: LinuxKeyEnum.alt_gr,
-        LinuxKeyEnum.shift.vk: LinuxKeyEnum.shift,
-        LinuxKeyEnum.shift_l.vk: LinuxKeyEnum.shift,
-        LinuxKeyEnum.shift_r.vk: LinuxKeyEnum.shift
-    }
-
     # todo add typehint
     _devices: [evdev.InputDevice] = []
     _pressed_keys: set[LinuxKeyData] = set()
@@ -108,7 +99,7 @@ class LinuxEventApi(EventApi):
         """
         modifier_keys = set()
         for key in cls._pressed_keys:
-            if key in cls.MODIFIER_MAP:
+            if key in StateMgr.MODIFIER_MAP:
                 modifier_keys.add(key)
 
         return modifier_keys
@@ -125,7 +116,7 @@ class LinuxEventApi(EventApi):
         modifier_keys = {None}
         for key in cls._pressed_keys:
             modifier_keys.add(
-                cls.MODIFIER_MAP.get(
+                StateMgr.MODIFIER_MAP.get(
                     key, None
                 )
             )
@@ -141,9 +132,9 @@ class LinuxEventApi(EventApi):
         )
 
         if is_press:
-            cls._pressed_keys.add(event_code)
-        elif event_code in cls._pressed_keys:
-            cls._pressed_keys.remove(event_code)
+            StateMgr.press_keys(event_code)
+        else:
+            StateMgr.un_press_keys(event_code)
 
     @classmethod
     def _convert_raw_keyboard_event(

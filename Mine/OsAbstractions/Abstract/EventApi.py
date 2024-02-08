@@ -5,7 +5,7 @@ from Mine.Events import any_event, KeyboardEvent
 
 class EventApi(ABC):
     # used to block events that where created programmatically
-    _blocked_events = set()
+    _blocked_events: set[any_event] = set()
     event_queue = []
     # store the current state of the keyboard
     # vk_code: is_down
@@ -24,7 +24,7 @@ class EventApi(ABC):
 
         # todo: add some warning for if a event stys blocked for too long
         #   since that would mean that the programmatically generated user
-        #   input failed.
+        #   input (probably) failed.
         cls._blocked_events.add(event)
 
     @classmethod
@@ -33,9 +33,20 @@ class EventApi(ABC):
 
         # check if event is blocked
         for blocked_event in cls._blocked_events:
-            if event == blocked_event:
-                cls._blocked_events.remove(blocked_event)
-                return
+            if event.__class__ == blocked_event.__class__:
+                if isinstance(event, KeyboardEvent.event_types):
+                    # When dispatching blocks for keyboards
+                    # we block a specific key/button.
+                    # So don't compare the full thing since the
+                    # state is impossible to calculate.
+                    if event.key_data.vk == blocked_event.key_data.vk:
+                        continue
+
+                if event == blocked_event:
+                    # todo make it so that a block sent at ms 100
+                    #  only can block events after that
+                    cls._blocked_events.remove(blocked_event)
+                    return
 
         if isinstance(event, KeyboardEvent.KeySend):
             if not cls._key_states[event.key]:

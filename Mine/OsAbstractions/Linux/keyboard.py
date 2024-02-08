@@ -1,19 +1,36 @@
 import evdev
 
 from Mine.OsAbstractions.Abstract import AbsKeyboard
-from Mine.OsAbstractions.Linux import xorg_keysyms
-from Mine.OsAbstractions.Linux.common import LinuxEventApi, LinuxKeyData, LinuxLayout
-from Mine.ViritallKeys.VkEnum import KeyData
+from Mine.OsAbstractions.Abstract.Keyboard import InvalidKeyException
+from Mine.OsAbstractions.Linux.StateMgr import StateMgr
+from Mine.OsAbstractions.Linux.common import LinuxKeyData, LinuxLayout
 from common import LinuxKeyEnum
 
 
 class LinuxKeyboard(AbsKeyboard):
-    @classmethod
-    def is_pressed(cls, vk_code: int) -> bool:
-        raise NotImplementedError
+    _dev = evdev.UInput()
 
     @classmethod
-    def press(cls, vk_code: int, down: bool) -> None:
+    def queue_press(cls, vk: int, is_press: bool) -> None:
+        """Queues a virtual key event.
+
+        This method does not perform ``SYN``.
+
+        :param int vk: The virtual key.
+
+        :param bool is_press: Whether this is a press event.
+        """
+        cls._dev.write(evdev.ecodes.EV_KEY, vk, int(is_press))
+
+    @classmethod
+    def send_queued_presses(cls):
+        cls._dev.syn()
+
+    @classmethod
+    def update_mapping(cls) -> None:
+        """
+        updates the internal keyboard key to vk_code mapping
+        """
         raise NotImplementedError
 
     @classmethod
@@ -22,7 +39,7 @@ class LinuxKeyboard(AbsKeyboard):
         """
         gets the buttons that needs to be pressed to get a specific char
         """
-        required_modifiers: set[KeyData] = set()
+        required_modifiers: set[LinuxKeyData] = set()
         vk: int
         if key.vk is not None:
             vk = key.vk
@@ -30,14 +47,14 @@ class LinuxKeyboard(AbsKeyboard):
             required_modifiers, vk = \
                 LinuxLayout.for_char(key.char)
         else:
-            raise cls.InvalidKeyException(key)
+            raise InvalidKeyException(key)
 
         # pressed_keys = LinuxEventApi.get_pressed_keys()
         need_pressed = set()
         need_unpressed = set()
 
         rev_multidict = {}
-        for key, value in LinuxEventApi.MODIFIER_MAP.items():
+        for key, value in StateMgr.MODIFIER_MAP.items():
             rev_multidict.setdefault(value, set()).add(key)
 
         for keys, generic_key in rev_multidict:
@@ -55,27 +72,6 @@ class LinuxKeyboard(AbsKeyboard):
             )
 
         return vk, conv_to_vk(need_pressed), conv_to_vk(need_unpressed)
-
-    @classmethod
-    def update_mapping(cls) -> None:
-        """
-        updates the internal keyboard key to vk_code mapping
-        """
-        raise NotImplementedError
-
-    @classmethod
-    def key_data_to_vk_code(cls, key_data: KeyData) -> int:
-        """
-        converts some data to a keycode e.g. "NP_0" to the keycode for numpad 0
-        """
-        raise NotImplementedError
-
-    @classmethod
-    def key_to_vk_code(cls, key_data: str) -> int:
-        """
-        converts a key from the keyboard e.g. "a", "#", "^" to a keycode
-        """
-        raise NotImplementedError
 
 
 class ListenerMixin(object):

@@ -207,6 +207,7 @@ class Layout(object):
         """
         result = {}
 
+        # todo get running ths as root working
         raw_data = subprocess.check_output(
             ['dumpkeys', '--full-table', '--keys-only']
         ).decode('utf-8')

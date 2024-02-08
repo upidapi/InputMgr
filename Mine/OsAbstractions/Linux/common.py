@@ -297,7 +297,7 @@ class LinuxLayout:
         return full_key.normal
 
     @classmethod
-    def for_char(cls, char) -> (int, set[Key]):
+    def for_char(cls, char: str) -> (int, set[Key]):
         """Reads a virtual key code and modifier state for a character.
 
         :param str char: The character.

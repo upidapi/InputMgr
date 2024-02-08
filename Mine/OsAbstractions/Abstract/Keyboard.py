@@ -64,6 +64,7 @@ class AbsKeyboard(ABC):
     #     raise NotImplementedError
 
     @classmethod
+    @abstractmethod
     def calc_buttons_for_key(cls, key: KeyData)\
             -> (int, set[int], set[int]):
         """
@@ -75,4 +76,18 @@ class AbsKeyboard(ABC):
         and key that needs to be pressed
 
         :return: vk, setup, cleanup
+        """
+
+    @classmethod
+    @abstractmethod
+    def get_key_data_from_vk(cls, vk: int) -> KeyData:
+        """
+        converts a vk into a KeyData obj
+        """
+
+    @classmethod
+    @abstractmethod
+    def get_key_data_from_char(cls, char: str) -> KeyData:
+        """
+        converts a vk into a KeyData obj
         """

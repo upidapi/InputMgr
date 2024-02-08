@@ -34,6 +34,14 @@ class LinuxKeyboard(AbsKeyboard):
         raise NotImplementedError
 
     @classmethod
+    def get_key_data_from_vk(cls, vk: int):
+        return LinuxKeyData.from_vk(vk)
+
+    @classmethod
+    def get_key_data_from_char(cls, char: str) -> LinuxKeyData:
+        return LinuxLayout.for_char(char)
+
+    @classmethod
     def calc_buttons_for_key(cls, key: LinuxKeyData)\
             -> (int, set[int], set[int]):
         """

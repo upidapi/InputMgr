@@ -18,17 +18,23 @@ _state_mgr = _backend.state_mgr
 ASSUME_NO_STATE_CHANGE = False
 
 
-class Up:
-    def __init__(self, *vks: int):
+# todo make the program actually respect the no_optimise flag
+#   if it has it then that event needs to happen
+#   probably implement by checking if it's a click or if it has
+#   the no_optimise flag in _minify_press_seq
+class _Up:
+    def __init__(self, *vks: int, no_optimise=False):
         self.vks = set(vks)
+        self.no_optimise = no_optimise
 
 
-class Down:
-    def __init__(self, *vks: int):
-        self.vks = set(vks)
+class _Down:
+    def __init__(self, *vks: int, no_optimise=False):
+        self.vks = set(vk for vk in vks)
+        self.no_optimise = no_optimise
 
-
-press_seq_type: [Up, Down, int]
+press_seq_type: [_Up, _Down, int]
+base_conv_from_types = int | str | KeyData
 
 
 class Keyboard:
@@ -86,13 +92,13 @@ class Keyboard:
 
     @classmethod
     def get_seq_class(cls, down):
-        return Down if down else Up
+        return _Down if down else _Up
 
     @classmethod
-    def _to_press_seq(cls, key: KeyData, no_cleanup: bool = False):
+    def _to_press_seq(cls, key: KeyData):
         setup, vk, cleanup = cls._buttons_for_key(key)
 
-        out: [Up, Down, int] = []
+        out: [_Up, _Down, int] = []
         for vk, press in setup:
             # this could theoretically block the wrong event since
             # we only get the vk
@@ -102,11 +108,10 @@ class Keyboard:
 
         out.append(vk)
 
-        if not no_cleanup:
-            for vk, press in setup:
-                out.append(
-                    cls.get_seq_class(press)(vk)
-                )
+        for vk, press in setup:
+            out.append(
+                cls.get_seq_class(press)(vk)
+            )
 
         return out
 
@@ -124,23 +129,23 @@ class Keyboard:
         out = []
         for thing in press_seq:
             if isinstance(thing, int):
-                out += Down(*(down - up))
-                out += Up(*(up - down))
+                out += _Down(*(down - up))
+                out += _Up(*(up - down))
 
                 down = set()
                 up = set()
 
-            elif isinstance(thing, Down):
+            elif isinstance(thing, _Down):
                 down += thing.vks
 
-            elif isinstance(thing, Up):
+            elif isinstance(thing, _Up):
                 up += thing.vks
 
             else:
                 raise TypeError(f"invalid press seq type {thing:=} {press_seq:=}")
 
-        out += Down(*down)
-        out += Up(*up)
+        out += _Down(*down)
+        out += _Up(*up)
 
         return out
 
@@ -151,11 +156,11 @@ class Keyboard:
                 cls._queue_vk_press(thing, True)
                 cls._queue_vk_press(thing, False)
 
-            elif isinstance(thing, Down):
+            elif isinstance(thing, _Down):
                 for vk in thing.vks:
                     cls._queue_vk_press(vk, True)
 
-            elif isinstance(thing, Up):
+            elif isinstance(thing, _Up):
                 for vk in thing.vks:
                     cls._queue_vk_press(vk, False)
 
@@ -164,17 +169,58 @@ class Keyboard:
 
         _keyboard.send_queued_presses()
 
-    conv_from_types = int | str | KeyData
+    class Up:
+        def __init__(self, *data: base_conv_from_types):
+            self.data = data
+
+    class Down:
+        def __init__(self, *data: base_conv_from_types):
+            self.data = data
+
+    # todo make this both take a list of keys that have to be active
+    #   and a action to do while that is true
+    class Pressed:
+        def __init__(self, *data: base_conv_from_types, ):
+            self.data = data
+
+    conv_from_types = base_conv_from_types | Up | Down | Pressed
 
     @classmethod
     def _to_key_data(cls, *inp: conv_from_types | (conv_from_types, ))\
-            -> (KeyData | (KeyData, )):
-        return (
-            {cls._to_key_data(y) for y in x}  # preserve the set struct
-            if isinstance(x, tuple) else
-            cls._to_key_data(x)  # convert
-            for x in inp
-        )
+            -> (KeyData | Up | Down | (KeyData | Up | Down, )):
+        out = []
+
+        for x in inp:
+            if isinstance(x, KeyData):
+                out.append(x)
+            elif isinstance(x, str):
+                out += [
+                    _keyboard.get_key_data_from_char(char)
+                    for char in x
+                ]
+            elif isinstance(x, int):
+                out.append(
+                    _keyboard.get_key_data_from_vk(
+                        x
+                    )
+                )
+            elif isinstance(x, cls.Up):
+                out += [
+                    _Up(cls._to_key_data(data))
+                    for data in x.data
+                ]
+            elif isinstance(x, cls.Down):
+                out += [
+                    _Down(cls._to_key_data(data))
+                    for data in x.data
+                ]
+            elif isinstance(x, tuple):
+                out.append(
+                    cls._to_key_data(y) for y in x
+                )
+                continue
+
+        return tuple(out)
 
     @classmethod
     def type(cls, *inp: conv_from_types | {conv_from_types}):

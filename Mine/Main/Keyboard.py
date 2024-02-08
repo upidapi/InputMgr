@@ -2,12 +2,53 @@ from Mine.OsAbstractions import get_backend, get_backend_type
 from Mine.ViritallKeys.VkEnum import KeyData
 
 _keyboard = get_backend().keyboard_controller
+_event_api = get_backend().event_api
 _backend_type = get_backend_type()
 
 class Keyboard:
-    @staticmethod
+    @classmethod
     def press_key(cls, vk_code):
+        pass
 
+    @classmethod
+    def _buttons_for_key(cls, key: KeyData):
+        pressed_keys = _event_api.get_pressed_keys()
+        vk, need_pressed, need_unpressed = _keyboard.calc_buttons_for_key(key)
+
+        # assume that no events are sent between now and the last
+        # event fetch
+        # if an event did occur then there's a chance that the
+        # mod key state changed which could lead to incorrect chars
+        # being pressed
+        ASSUME_NO_STATE_CHANGE = False
+        if ASSUME_NO_STATE_CHANGE:
+            to_press = need_pressed - pressed_keys
+            to_un_press = pressed_keys | need_unpressed
+        else:
+            to_press = need_pressed
+            to_un_press = need_unpressed
+
+        setup: set[(int, bool)] = set(
+            (key, True)
+            for key in to_press
+        ) | set(
+            (key, False)
+            for key in to_un_press
+        )
+
+        cleanup: set[(int, bool)] = set(
+            (key_vk, not pressed) for key_vk, pressed in setup
+        )
+
+        return {
+            "setup": setup,
+            "key_vk": vk,
+            "cleanup": cleanup,
+        }
+
+    @classmethod
+    def _write_key_data(cls):
+        pass
 
 conv_from_types = int | str | KeyData
 

@@ -2,7 +2,7 @@ import evdev
 
 from Mine.OsAbstractions.Abstract import AbsKeyboard
 from Mine.OsAbstractions.Linux import xorg_keysyms
-from Mine.OsAbstractions.Linux.common import LinuxEventApi
+from Mine.OsAbstractions.Linux.common import LinuxEventApi, LinuxKeyData, LinuxLayout
 from Mine.ViritallKeys.VkEnum import KeyData
 from common import LinuxKeyEnum
 
@@ -15,6 +15,46 @@ class LinuxKeyboard(AbsKeyboard):
     @classmethod
     def press(cls, vk_code: int, down: bool) -> None:
         raise NotImplementedError
+
+    @classmethod
+    def calc_buttons_for_key(cls, key: LinuxKeyData)\
+            -> (int, set[int], set[int]):
+        """
+        gets the buttons that needs to be pressed to get a specific char
+        """
+        required_modifiers: set[KeyData] = set()
+        vk: int
+        if key.vk is not None:
+            vk = key.vk
+        elif key.char is not None:
+            required_modifiers, vk = \
+                LinuxLayout.for_char(key.char)
+        else:
+            raise cls.InvalidKeyException(key)
+
+        # pressed_keys = LinuxEventApi.get_pressed_keys()
+        need_pressed = set()
+        need_unpressed = set()
+
+        rev_multidict = {}
+        for key, value in LinuxEventApi.MODIFIER_MAP.items():
+            rev_multidict.setdefault(value, set()).add(key)
+
+        for keys, generic_key in rev_multidict:
+            # this assumes the mod key is always the base form
+            # so shift_l and not shift_r
+            if generic_key in required_modifiers:
+                need_pressed.add(generic_key)
+            else:
+                need_unpressed += keys
+
+        def conv_to_vk(x: set[LinuxKeyData]) -> set[int]:
+            return set(
+                getattr(evdev.ecodes, key_data.kernel_name)
+                for key_data in x
+            )
+
+        return vk, conv_to_vk(need_pressed), conv_to_vk(need_unpressed)
 
     @classmethod
     def update_mapping(cls) -> None:
@@ -145,5 +185,3 @@ class ListenerMixin(object):
             self.on_press(key)
         else:
             self.on_release(key)
-
-

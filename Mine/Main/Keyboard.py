@@ -14,7 +14,6 @@ _keyboard = _backend.keyboard_controller
 _event_api = _backend.event_api
 _state_mgr = _backend.state_mgr
 
-
 ASSUME_NO_STATE_CHANGE = False
 
 
@@ -52,7 +51,7 @@ class Down:
 # todo make this both take a list of keys that have to be active
 #   and a action to do while that is true
 class Pressed:
-    def __init__(self, pressed: (base_conv_from_types, ), do: base_conv_from_types | Up | Down):
+    def __init__(self, pressed: (base_conv_from_types,), do: base_conv_from_types | Up | Down):
         self.pressed = pressed
         self.do = do
 
@@ -65,7 +64,7 @@ class Keyboard:
     def _dispatch_block(cls, vk: int, press: bool):
         event_class = KeyboardEvent.KeyDown if press else KeyboardEvent.KeyUp
 
-        # btw blocking a KeyData blocks that button
+        # btw blocking a KeyData blocks that button,
         # so we actually get all data we need
         key = KeyData.from_vk(vk)
 
@@ -163,6 +162,16 @@ class Keyboard:
             cls,
             press_seq: press_seq_type
     ) -> press_seq_type:
+        """
+        prevents excessive (and unnecessary) modifier presses
+        so
+            _minify_press_seq(
+                _Down(5), 10, _Up(5), _Down(5), 12, _Up(5), _Down(5), 11, _Up(5)
+            ) == (_Down(5), 10, 12, 11, _Up(5))
+
+        if a _Up or _Down instance is marked as no_optimise
+            then it won't be collapsed
+        """
         down = set()
         up = set()
 
@@ -198,46 +207,105 @@ class Keyboard:
         return out
 
     @classmethod
-    def _to_press_seq(cls, *inp: all_conv_from_types) -> (press_seq_type, ):
+    def _to_press_seq(cls, *inp: all_conv_from_types) -> press_seq_type:
         # todo handle (Up | Down)(str)
         out = []
 
-        for x in inp:
-            if isinstance(x, KeyData):
-                out.append(x)
-            elif isinstance(x, str):
+        for part in inp:
+            if isinstance(part, KeyData):
+                out.append(part)
+            elif isinstance(part, str):
                 out += [
                     _keyboard.get_key_data_from_char(char)
-                    for char in x
+                    for char in part
                 ]
-            elif isinstance(x, int):
+            elif isinstance(part, int):
                 out.append(
                     _keyboard.get_key_data_from_vk(
-                        x
+                        part
                     )
                 )
-            elif isinstance(x, Pressed):
-                out += cls._to_press_seq(Down(x.pressed))
-                out.append(cls._to_press_seq(x.do))
-                out += cls._to_press_seq(Up(x.pressed[::-1]))
+            elif isinstance(part, Pressed):
+                out += cls._to_press_seq(Down(part.pressed))
+                out.append(cls._to_press_seq(part.do))
+                out += cls._to_press_seq(Up(part.pressed[::-1]))
 
-            elif isinstance(x, Up):
-                out += [
-                    _Up(cls._to_press_seq(data), no_optimise=True)
-                    for data in x.data
-                ]
-            elif isinstance(x, Down):
-                out += [
-                    _Down(cls._to_press_seq(data), no_optimise=True)
-                    for data in x.data
-                ]
+            elif isinstance(part, Up):
+                for data in part.data:
+                    out += [
+                        _Up(instruction, no_optimise=True)
+                        if isinstance(instruction, int) else instruction
+                        for instruction in cls._to_press_seq(data)
+                    ]
+            elif isinstance(part, Down):
+                for data in part.data:
+                    out += [
+                        _Down(instruction, no_optimise=True)
+                        if isinstance(instruction, int) else instruction
+                        for instruction in cls._to_press_seq(data)
+                    ]
 
         return tuple(out)
+
+    # todo handle dead keys
+
+    @classmethod
+    def _remove_modifiers(cls, *inp: all_conv_from_types) -> press_seq_type:
+        """
+        converts all "all_conv_from_types" so that all str and
+        KeyData become just int (vks)
+        """
+
+        out = []
+
+        for part in inp:
+            if isinstance(part, int):
+                out.append(part)
+
+            if isinstance(part, str):
+                out += [
+                    _keyboard.get_vk_from_key_data(
+                        _keyboard.get_key_data_from_char(
+                            char
+                        ))
+                    for char in part
+                ]
+
+            if isinstance(part, KeyData):
+                out += [
+                    _keyboard.get_vk_from_key_data(
+                        part
+                    )
+                ]
+
+            elif isinstance(part, Up):
+                return Up(
+                    cls._remove_modifiers(
+                        *part.data
+                    )
+                )
+
+            elif isinstance(part, Down):
+                return Up(
+                    cls._remove_modifiers(
+                        *part.data
+                    )
+                )
+
+            elif isinstance(part, Pressed):
+                out += cls._remove_modifiers(Down(part.pressed))
+                out.append(cls._remove_modifiers(part.do))
+                out += cls._remove_modifiers(Up(part.pressed[::-1]))
+
+        return out
 
     @classmethod
     def type(cls, *inp: all_conv_from_types):
         """
         types a sequence of things
+
+        for each part in inp
+            the following are cases for the type of the part
 
         int (vk):
             press and un pres said button (vk)
@@ -245,7 +313,59 @@ class Keyboard:
         str (text)
             press buttons in a way that archives the desired text
 
+        KeyData
+            if it has .char type that (see "str")
+            if it has .vk type that (see "int")
+
+        Up / Down
+            if the inside is a vk
+                then simply press/un press that vk
+
+            if the inside is a char
+                 then all modifiers are correctly pressed and cleaned up
+                 but the actual vk that corresponds to the char
+                    is simply pressed/un pressed
+
+            Note:
+                the char that is "permanently" pressed/unpressed
+                is not taken into consideration when calculating the
+                keys required to be pressed/unpressed to get a specific char
+
+                i.e.
+                type(Down(Vk.shift), "a") => "A"
+
+        Pressed(pressed, do)
+            executes {do}
+            while the keys in {pressed} are pressed
+            afterward un presses those keys
+
+            Note:
+                if Up(a) is used inside {do}
+                and {pressed} has {a} in it
+                then {a} will be unpressed in the cleanup
+
+                i.e.
+                if Up(a) in {do}
+                and {a} in {pressed}
+                then {a} will be unpressed when "Pressed" finished
         """
         press_seq = cls._key_data_to_press_seq(*inp)
         optimised_press_seq = cls._minify_press_seq(press_seq)
         cls._exec_press_seq(optimised_press_seq)
+
+    @classmethod
+    def type_literal_keys(cls, *inp: all_conv_from_types):
+        """
+        types the vk(s) directly corresponding to the input
+
+        so it totally ignores state
+            type_literal_keys("A") == type_literal_keys("a")
+            # on the nordic layout
+            type_literal_keys("3") == type_literal_keys("#") == type_literal_keys("£")
+
+        it also won't fix the state for a specific char so:
+            type_literal_keys("a") might come out as "A", if shift is pressed
+        """
+
+        literal_inp = cls._remove_modifiers(*inp)
+        cls.type(literal_inp)

@@ -91,3 +91,17 @@ class AbsKeyboard(ABC):
         """
         converts a vk into a KeyData obj
         """
+
+    @classmethod
+    @abstractmethod
+    def get_vk_from_key_data(cls, key_data: KeyData) -> int:
+        """
+        converts a vk into a KeyData obj
+        """
+
+    # @classmethod
+    # @abstractmethod
+    # def get_char_from_key_data(cls, key_data: KeyData) -> str:
+    #     """
+    #     converts a vk into a KeyData obj
+    #     """

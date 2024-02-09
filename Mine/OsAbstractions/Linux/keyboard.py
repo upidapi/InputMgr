@@ -42,20 +42,22 @@ class LinuxKeyboard(AbsKeyboard):
         return LinuxLayout.for_char(char)
 
     @classmethod
+    def get_vk_from_key_data(cls, key_data: LinuxKeyData) -> int:
+        if key_data.vk is not None:
+            return key_data.vk
+        elif key_data.char is not None:
+            return LinuxLayout.for_char(key_data.char)[1]
+        else:
+            raise InvalidKeyException(key_data)
+
+    @classmethod
     def calc_buttons_for_key(cls, key: LinuxKeyData)\
             -> (int, set[int], set[int]):
         """
         gets the buttons that needs to be pressed to get a specific char
         """
         required_modifiers: set[LinuxKeyData] = set()
-        vk: int
-        if key.vk is not None:
-            vk = key.vk
-        elif key.char is not None:
-            required_modifiers, vk = \
-                LinuxLayout.for_char(key.char)
-        else:
-            raise InvalidKeyException(key)
+        vk = cls.get_vk_from_key_data(key)
 
         # pressed_keys = LinuxEventApi.get_pressed_keys()
         need_pressed = set()

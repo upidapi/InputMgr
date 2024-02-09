@@ -12,8 +12,8 @@ class KeyData:
     ):
 
         # no actual data
-        if all(thing is None for thing in [vk, char, data]):
-            raise ValueError("no data provided, you must provide vk, key, or data ")
+        if all(thing is None for thing in [vk, char]):
+            raise ValueError("no data provided, you must provide vk or key")
 
         self.vk = vk
         self.char = char

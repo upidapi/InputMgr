@@ -1,6 +1,7 @@
 import time
 from typing import Callable
 
+from Mine.Events import KeyboardEvent, MouseEvent
 from Mine.OsAbstractions import get_backend
 
 _event_api = get_backend().event_api
@@ -45,3 +46,51 @@ class EventStack:
 
             _event_api.stop_listening()
             raise e
+
+
+def print_event(
+        event,
+
+        mouse_move=False,
+        mouse_click=True,
+        mouse_unclick=True,
+        mouse_scroll=True,
+
+        keyboard_keydown=True,
+        keyboard_keyup=True,
+        keyboard_key_send=True,
+):
+
+    # print(type(event))
+
+    string_event = str(type(event)).split(".")[-1][:-2] + ": "
+    padded_event = string_event.ljust(10)
+
+    if isinstance(event, KeyboardEvent.event_types):
+        if any((keyboard_keydown, keyboard_keyup, keyboard_key_send)):
+            f_char = event.key_data.char or ''
+            vk = str(event.key_data.vk).ljust(4)
+
+            print(f"{padded_event}{vk} \"{f_char}\"")
+        return
+
+    if isinstance(event, MouseEvent.event_types):
+        if isinstance(event, MouseEvent.Move):
+            if mouse_move:
+                print(f"{padded_event}{event.pos}")
+            return
+
+        if isinstance(event, MouseEvent.Scroll):
+            if mouse_scroll:
+                print(f"{padded_event}{event.pos} {event.direction}")
+            return
+
+        if isinstance(event, MouseEvent.Click | MouseEvent.UnClick):
+            if any((mouse_click, mouse_unclick)):
+                print(f"{padded_event}{event.pos} {event.button}")
+            return
+
+
+def print_events():
+    for event in EventStack.get_conveyor():
+        print_event(event)

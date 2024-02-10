@@ -207,7 +207,7 @@ class LinuxLayout:
 
         if mapped_name:
             return LinuxKeyData.from_char(
-                mapped_name
+                mapped_name, vk=vk
             )
 
     @classmethod
@@ -219,18 +219,17 @@ class LinuxLayout:
         For simplicity, we call out to the ``dumpkeys`` binary. In the future,
         we may want to implement this ourselves.
         """
-        result = {}
-        data_path = os.path.join(
-            os.path.dirname(__file__),
-            "ExampleData.txt"
-        )
+        # for debug when you don't have root
+        # data_path = os.path.join(
+        #     os.path.dirname(__file__),
+        #     "ExampleData.txt"
+        # )
+        # with open(data_path) as f:
+        #     raw_data = f.read()
 
-        # todo get running ths as root working
-        # raw_data = subprocess.check_output(
-        #     ['dumpkeys', '--full-table', '--keys-only']
-        # ).decode('utf-8')
-        with open(data_path) as f:
-            raw_data = f.read()
+        raw_data = subprocess.check_output(
+            ['dumpkeys', '--full-table', '--keys-only']
+        ).decode('utf-8')
 
         key_data = cls.KEYCODE_RE.findall(raw_data)
 
@@ -247,14 +246,11 @@ class LinuxLayout:
             if all(key is None for key in keys):
                 continue
 
-            result[vk] = cls.Key(*keys)
-
-        return result
+            cls._vk_table[vk] = cls.Key(*keys)
 
     @classmethod
     def load_char_table(cls):
-        cls._vk_table = cls._load_vk_table()
-        cls._char_table = {}
+        cls._load_vk_table()
 
         for vk, keys in cls._vk_table.items():
             for key, modifier_keys in (
@@ -319,6 +315,8 @@ def _init_layout():
         #: The keyboard layout.
         LinuxLayout.load_char_table()
     except subprocess.CalledProcessError as e:
+        # todo i think the 1 should be a 0
+        #   (id for root is 0)
         raise ImportError('failed to load keyboard layout: "' + str(e) + (
             '"; please make sure you are root' if os.getuid() != 1 else '"'))
     except OSError as e:
@@ -329,7 +327,3 @@ def _init_layout():
 
 
 _init_layout()
-
-
-print("finish")
-

@@ -1,11 +1,7 @@
-from evdev import InputDevice
+from Mine.Main.EventStack import print_events
 
-from Mine.Main.EventStack import EventStack
+print_events()
 
-for event in EventStack.get_conveyor():
-    print(event)
-
-dddddd
 # from select import select
 #
 # import evdev

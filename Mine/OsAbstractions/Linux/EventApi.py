@@ -1,7 +1,6 @@
 from select import select
 
 import evdev
-from evdev import ecodes, categorize
 
 from Mine.Events import KeyboardEvent, any_event, MouseEvent
 from Mine.OsAbstractions.Abstract import EventApi
@@ -46,7 +45,6 @@ class LinuxInputEvent:
 
 
 class LinuxEventApi(EventApi):
-    # todo add typehint
     _devices: dict[str, evdev.InputDevice] = []
     _pressed_keys: set[LinuxKeyData] = set()
 
@@ -65,11 +63,7 @@ class LinuxEventApi(EventApi):
         devices = {dev.fd: dev for dev in devices}
 
         if not devices:
-            # todo prob change to "no devices found"
-            #   since this includes mice etc
-
-            # todo also add another msg/warning since we need root to run this
-            raise OSError('no keyboard device available')
+            raise OSError('no devices found')
 
         return devices
 
@@ -174,18 +168,15 @@ class LinuxEventApi(EventApi):
         except KeyError:
             for key_opt in LinuxKeyEnum:
                 if key_opt.vk == vk:
-                    # todo remove this
-                    # noinspection PyTypeChecker
                     key = key_opt
                     break
             else:
-                key = LinuxKeyData.from_vk(vk)
+                # if not ALLOW_UNKNOWN_KEYCODES:
+                #     raise TypeError(
+                #         f"unknown keycode detected {vk:=} {raw_event:=}"
+                #     )
 
-            # if not ALLOW_UNKNOWN_KEYCODES:
-            #     raise TypeError(
-            #         f"unknown keycode detected {vk:=} {raw_event:=}"
-            #     )
-            # keycode = vk
+                key = LinuxKeyData.from_vk(vk)
 
         return dc(
             raw=event,
@@ -194,6 +185,9 @@ class LinuxEventApi(EventApi):
         )
 
     # todo get initial pos
+    # todo get the actual pos
+    #   the pos isn't exposed to evdev, since its too low level
+    #   so we have to get it another way, for example xlib
     # x, y
     _mouse_pos = (0, 0)
 

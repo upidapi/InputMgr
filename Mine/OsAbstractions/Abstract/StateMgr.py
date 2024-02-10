@@ -10,7 +10,7 @@ class AbsStateMgr:
 
     @classmethod
     def press_keys(cls, *keys: KeyData):
-        cls._pressed_keys += set(keys)
+        cls._pressed_keys.update(keys)
 
     @classmethod
     def un_press_keys(cls, *keys: KeyData):

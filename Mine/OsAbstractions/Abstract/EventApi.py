@@ -49,23 +49,19 @@ class EventApi(ABC):
                     return
 
         if isinstance(event, KeyboardEvent.KeySend):
-            if not cls._key_states[event.key]:
-                # pycharm incorrectly assumes that "time" "raw" "vk_code" isn't
-                # a part of KeyDown since it only checks the parent for attrs
-                # but not the parent's parent
-                # noinspection PyArgumentList
+            if not cls._key_states.get(event.key_data, False):
                 cls.event_queue.append(
                     KeyboardEvent.KeyDown(
-                        time=event.time,
+                        time_ms=event.time_ms,
                         raw=event.raw,
-                        vk_code=event.vk_code
+                        key_data=event.key_data
                     )
                 )
 
-            cls._key_states[event.key] = True
+            cls._key_states[event.key_data] = True
 
         if isinstance(event, KeyboardEvent.KeyUp):
-            cls._key_states[event.key] = False
+            cls._key_states[event.key_data] = False
 
         cls.event_queue.append(event)
 

@@ -23,10 +23,26 @@ SUPPRESS = False
 #     def un_supress()
 #     def set_device_paths()
 
+class LinuxInputEvent:
+    def __init__(self, event: evdev.InputEvent):
+        #: Time in seconds since epoch at which event occurred.
+        self.time_ms = event.timestamp() * 1000
 
-class EventTypeEnum:
-    sync = 0
-    scroll = 2
+        self.type = event.type
+
+        self.code = event.code
+
+        self.value = event.value
+
+    def __str__(self):
+        return \
+            (f"{self.__class__.__name__}("
+             f"time: {self.time_ms} "
+             f"type: {self.type}, "
+             f"code: {self.code}, "
+             f"val: {self.value})")
+
+    __repr__ = __str__
 
 
 class LinuxEventApi(EventApi):
@@ -123,20 +139,20 @@ class LinuxEventApi(EventApi):
             StateMgr.un_press_keys(event_code)
 
     @classmethod
-    def _convert_raw_keyboard_event(cls, event: evdev.InputEvent) -> KeyboardEvent:
+    def _convert_raw_keyboard_event(cls, event: LinuxInputEvent) -> KeyboardEvent:
         # dataclass
 
         # key up
         if event.value == 0:
-            dc = evdev.events.KeyEvent.key_up
+            dc = KeyboardEvent.KeyUp
 
         # key down
         elif event.value == 1:
-            dc = evdev.events.KeyEvent.key_down
+            dc = KeyboardEvent.KeyDown
 
         # key send
         elif event.value == 2:
-            dc = evdev.events.KeyEvent.key_hold
+            dc = KeyboardEvent.KeySend
 
         else:
             raise TypeError(f"event value not 0, 1, or 2: {event}")
@@ -147,6 +163,8 @@ class LinuxEventApi(EventApi):
         modifier_keys = cls._get_active_modifiers()
         key: LinuxKeyData
         try:
+            # todo check if this is right
+            #   they dont do the same thing
             # keycode = ecodes.keys[vk]
             key = LinuxLayout.for_vk(
                 vk,
@@ -171,8 +189,8 @@ class LinuxEventApi(EventApi):
 
         return dc(
             raw=event,
-            time_ms=event.timestamp(),
-            key=key
+            time_ms=event.time_ms,
+            key_data=key
         )
 
     # todo get initial pos
@@ -180,7 +198,7 @@ class LinuxEventApi(EventApi):
     _mouse_pos = (0, 0)
 
     @classmethod
-    def _convert_mouse_move_event(cls, event: evdev.InputEvent):
+    def _convert_mouse_move_event(cls, event: LinuxInputEvent) -> MouseEvent.event_types | None:
         dx, dy = 0, 0
 
         # dx move
@@ -203,14 +221,14 @@ class LinuxEventApi(EventApi):
         )
 
         return MouseEvent.Move(
-            time_ms=event.timestamp(),
+            time_ms=event.time_ms,
             raw=event,
             pos=cls._mouse_pos,
             delta=(dx, dy)
         )
 
     @classmethod
-    def _convert_scroll_event(cls, event: evdev.InputEvent):
+    def _convert_scroll_event(cls, event: LinuxInputEvent):
         # scroll direction
         if event.code == 8:
             # val = 1: scroll up
@@ -223,7 +241,7 @@ class LinuxEventApi(EventApi):
             # val > 0: scroll up
             # val < 0: scroll down
             return MouseEvent.Scroll(
-                time_ms=event.timestamp(),
+                time_ms=event.time_ms,
                 raw=event,
                 pos=cls._mouse_pos,
                 direction="up" if event.value > 0 else "down"
@@ -231,6 +249,8 @@ class LinuxEventApi(EventApi):
 
     @classmethod
     def _convert_raw_event_to_event(cls, event: evdev.InputEvent) -> any_event | None:
+        event = LinuxInputEvent(event)
+
         # sync event
         if event.type == 0:
             # no real purpose (probably)
@@ -332,32 +352,6 @@ class LinuxEventApi(EventApi):
                 if event is None:
                     continue
 
+                # print(raw_event)
+                # print(event)
                 cls.dispatch_event(event)
-
-
-"""
-# start thing
-event at 1707574947.562808, code 04, type 04, val 458778
-
-# key {17} down
-event at 1707574947.562808, code 17, type 01, val 01
-
-# key {17} send
-# note that "send" is not sent at the same time as "down"
-event at 1707574947.819929, code 17, type 01, val 02
-event at 1707574947.859927, code 17, type 01, val 02
-event at 1707574947.896604, code 17, type 01, val 02
-
-# end thing
-event at 1707574948.538825, code 04, type 04, val 458778
-
-# key {17} up
-event at 1707574948.538825, code 17, type 01, val 00
-
-458795 q
-458772 w
-458778 e
-458760 r
-458773 t
-
-"""

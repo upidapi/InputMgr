@@ -55,7 +55,7 @@ class _BaseKeyboardEvent(_BaseEvent):
 
 
 @dataclass
-class _KeySend(_BaseKeyboardEvent):
+class KeySend(_BaseKeyboardEvent):
     """
     This will happen when a key is pressed. But keeps being sent
     if it is continued to be held down.
@@ -65,14 +65,14 @@ class _KeySend(_BaseKeyboardEvent):
 
 
 @dataclass
-class _KeyDown(_BaseKeyboardEvent):
+class KeyDown(_BaseKeyboardEvent):
     """
     Called when a key is pressed
     """
 
 
 @dataclass
-class _KeyUp(_BaseKeyboardEvent):
+class KeyUp(_BaseKeyboardEvent):
     """
     Called when a key is unpressed
     """
@@ -80,9 +80,8 @@ class _KeyUp(_BaseKeyboardEvent):
 
 # we have to do this to make dataclasses work (in pycharm)
 class KeyboardEvent:
-    KeySend = _KeySend
-    KeyDown = _KeyDown
-    KeyUp = _KeyUp
+    KeySend = KeySend
+    KeyDown = KeyDown
+    KeyUp = KeyUp
 
-    event_types = _KeyDown | _KeyUp | KeySend
-
+    event_types = KeyDown | KeyUp | KeySend

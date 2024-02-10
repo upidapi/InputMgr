@@ -34,11 +34,11 @@
 #
 # # def move_duration(moves: List[Move]):  # Accepts all kinds of moves
 # #     return sum(m.end_time - m.start_time for m in moves)
-from Test.test2 import MouseEvent
-
-MouseEvent.Move(
-    time_ms=10,
-    raw=1,
-    pos=(100, 100),
-    delta=(-1, -1),
-)
+# from Test.test2 import MouseEvent
+#
+# MouseEvent.Move(
+#     time_ms=10,
+#     raw=1,
+#     pos=(100, 100),
+#     delta=(-1, -1),
+# )

@@ -12,34 +12,33 @@ class _BaseMouseEvent(_BaseEvent):
 
 
 @dataclass
-class _Move(_BaseMouseEvent):
+class Move(_BaseMouseEvent):
     # mouse move since last event
     delta: (int, int)
 
 
-_button_type = Literal["left", "middle", "right", "forward", "backward"]
+button_type = Literal["left", "middle", "right", "forward", "backward"]
 
 
 @dataclass
-class _Click(_BaseMouseEvent):
-    button: _button_type
+class Click(_BaseMouseEvent):
+    button: button_type
 
 
 @dataclass
-class _UnClick(_BaseMouseEvent):
-    button: _button_type
+class UnClick(_BaseMouseEvent):
+    button: button_type
 
 
 @dataclass
-class _Scroll(_BaseMouseEvent):
+class Scroll(_BaseMouseEvent):
     # todo possibly use a dx, dy format to be able to handle
     #   variable size scrolls along with sideways scrolls
     direction: Literal["up", "down"]
 
 
-_event_types = _Move | _Click | _UnClick | _Scroll
+event_types = Move | Click | UnClick | Scroll
 
-dict.update()
 
 # @staticmethod
 # def parse_raw_event(event: RawMouseEvent) -> [event_types]:
@@ -125,10 +124,10 @@ dict.update()
 
 # we have to do this to make dataclasses work (in pycharm)
 class MouseEvent:
-    event_types = _event_types
-    button_type = _button_type
+    event_types = event_types
+    button_type = button_type
 
-    Move = _Move
-    Click = _Click
-    UnClick = _UnClick
-    Scroll = _Scroll
+    Move = Move
+    Click = Click
+    UnClick = UnClick
+    Scroll = Scroll

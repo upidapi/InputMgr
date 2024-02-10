@@ -25,21 +25,23 @@ class EventStack:
         try:
             _event_api.start_listening()
 
+            print("started")
+
             while True:
                 while True:
                     if break_cond():
                         raise StopIteration
 
-                    _event_api.fetch_new_events()
-
                     if _event_api.event_queue:
                         break
+
+                    _event_api.fetch_new_events()
 
                     time.sleep(0.001)
 
                 yield _event_api.event_queue.pop(0)
-        except KeyboardInterrupt:
+        except BaseException as e:
             print("stopping")
 
             _event_api.stop_listening()
-            raise KeyboardInterrupt
+            raise e

@@ -12,10 +12,10 @@ from Mine.ViritallKeys.VkEnum import KeyData, VkEnum
 
 
 class LinuxKeyData(KeyData):
-    def __init__(self, x_name, kernel_name, **kwargs):
+    def __init__(self, x_name=None, **kwargs):
         super().__init__(**kwargs)
         self.x_name = x_name
-        self.kernel_name = kernel_name
+        # self.kernel_name = kernel_name
 
 
 def _k_from_name(x_name, kernel_name, **kwargs):
@@ -31,12 +31,10 @@ def _k_from_name(x_name, kernel_name, **kwargs):
         vk = getattr(evdev.ecodes, kernel_name)
     except AttributeError:
         vk = None
-    return KeyData.from_vk(
+    return LinuxKeyData.from_vk(
         vk,
-        data={
-            "x_name": x_name,
-            "kernel_name": kernel_name,
-        },
+        x_name=x_name,
+        # kernel_name=kernel_name,
         **kwargs,
     )
 
@@ -179,38 +177,38 @@ class LinuxLayout:
 
         :return: a key representation
         """
-        try:
-            # First try special keys...
-            for key in LinuxKeyEnum:
-                if key.value._x_name == name:
-                    return key
-        except StopIteration:
-            # ...then characters...
-            try:
-                _, char = xorg_keysyms.SYMBOLS[name.lstrip('+')]
-                if char:
-                    return KeyData.from_char(char, vk=vk)
-            except KeyError:
-                pass
+        # First try special keys...
+        for key in LinuxKeyEnum:
+            key: LinuxKeyData
+            if key.x_name == name:
+                return key
 
-            # ...and finally special dumpkeys names
-            try:
-                return KeyData.from_char(
-                    {
-                        'one': '1',
-                        'two': '2',
-                        'three': '3',
-                        'four': '4',
-                        'five': '5',
-                        'six': '6',
-                        'seven': '7',
-                        'eight': '8',
-                        'nine': '9',
-                        'zero': '0'
-                    }[name])
+        # ...then characters...
+        _, char = xorg_keysyms.SYMBOLS.get(
+            name.lstrip('+'),
+            (None, None)
+        )
 
-            except KeyError:
-                pass
+        if char:
+            return KeyData.from_char(char, vk=vk)
+
+        mapped_name = {
+                'one': '1',
+                'two': '2',
+                'three': '3',
+                'four': '4',
+                'five': '5',
+                'six': '6',
+                'seven': '7',
+                'eight': '8',
+                'nine': '9',
+                'zero': '0'
+            }.get(name, None)
+
+        if mapped_name:
+            return LinuxKeyData.from_char(
+                mapped_name
+            )
 
     @classmethod
     @functools.lru_cache()
@@ -222,11 +220,17 @@ class LinuxLayout:
         we may want to implement this ourselves.
         """
         result = {}
+        data_path = os.path.join(
+            os.path.dirname(__file__),
+            "ExampleData.txt"
+        )
 
         # todo get running ths as root working
-        raw_data = subprocess.check_output(
-            ['dumpkeys', '--full-table', '--keys-only']
-        ).decode('utf-8')
+        # raw_data = subprocess.check_output(
+        #     ['dumpkeys', '--full-table', '--keys-only']
+        # ).decode('utf-8')
+        with open(data_path) as f:
+            raw_data = f.read()
 
         key_data = cls.KEYCODE_RE.findall(raw_data)
 
@@ -235,6 +239,7 @@ class LinuxLayout:
             vk = int(keycode)
             keys = tuple(
                 cls._parse_raw_key(vk, name)
+                # todo possibly add the other 4 things too
                 for name in names.split()[:4]
             )
 
@@ -308,18 +313,23 @@ class LinuxLayout:
         """
         return cls._char_table[char]
 
-    @classmethod
-    def _init_layout(cls):
-        try:
-            #: The keyboard layout.
-            cls.load_char_table()
-        except subprocess.CalledProcessError as e:
-            raise ImportError('failed to load keyboard layout: "' + str(e) + (
-                '"; please make sure you are root' if os.getuid() != 1 else '"'))
-        except OSError as e:
-            raise ImportError({
-                errno.ENOENT: 'the binary dumpkeys is not installed'}.get(
-                e.args[0],
-                str(e)))
 
-    _init_layout()
+def _init_layout():
+    try:
+        #: The keyboard layout.
+        LinuxLayout.load_char_table()
+    except subprocess.CalledProcessError as e:
+        raise ImportError('failed to load keyboard layout: "' + str(e) + (
+            '"; please make sure you are root' if os.getuid() != 1 else '"'))
+    except OSError as e:
+        raise ImportError({
+            errno.ENOENT: 'the binary dumpkeys is not installed'}.get(
+            e.args[0],
+            str(e)))
+
+
+_init_layout()
+
+
+print("finish")
+

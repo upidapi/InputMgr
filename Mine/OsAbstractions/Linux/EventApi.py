@@ -1,15 +1,12 @@
-import time
-
 from select import select
 
 import evdev
-from evdev import ecodes
+from evdev import ecodes, categorize
 
-from Mine.Events import KeyboardEvent, any_event
+from Mine.Events import KeyboardEvent, any_event, MouseEvent
 from Mine.OsAbstractions.Abstract import EventApi
 from Mine.OsAbstractions.Linux.StateMgr import StateMgr
 from Mine.OsAbstractions.Linux.common import LinuxKeyEnum, LinuxKeyData, LinuxLayout
-
 
 DEVICE_PATHS = []
 SUPPRESS = False
@@ -27,9 +24,14 @@ SUPPRESS = False
 #     def set_device_paths()
 
 
+class EventTypeEnum:
+    sync = 0
+    scroll = 2
+
+
 class LinuxEventApi(EventApi):
     # todo add typehint
-    _devices: [evdev.InputDevice] = []
+    _devices: dict[str, evdev.InputDevice] = []
     _pressed_keys: set[LinuxKeyData] = set()
 
     @classmethod
@@ -40,33 +42,17 @@ class LinuxEventApi(EventApi):
 
         :return: a compatible device
         """
-        devices = []
-        for path in paths:
-            # Open the device
-            try:
-                device = evdev.InputDevice(path)
-            except OSError:
-
-                continue
-
-            devices.append(device)
-            # # Does this device provide more handled event codes?
-            # capabilities = next_dev.capabilities()
-            # next_count = sum(
-            #     len(codes)
-            #     for event, codes in capabilities.items()
-            #     if event in cls._EVENTS
-            # )
-            #
-            # if next_count > count:
-            #     dev = next_dev
-            #     count = next_count
-            # else:
-            #     next_dev.close()
+        # originally this had some try/catching for os errors
+        # and just ignored them
+        # if problems occur we might have to re add it
+        devices = map(evdev.InputDevice, paths)
+        devices = {dev.fd: dev for dev in devices}
 
         if not devices:
             # todo prob change to "no devices found"
             #   since this includes mice etc
+
+            # todo also add another msg/warning since we need root to run this
             raise OSError('no keyboard device available')
 
         return devices
@@ -78,12 +64,12 @@ class LinuxEventApi(EventApi):
         )
         # todo add support to supress individual devices
         if SUPPRESS:
-            for device in cls._devices:
+            for device in cls._devices.values():
                 device.grab()  # mine!
 
     @classmethod
     def stop_listening(cls) -> None:
-        for device in cls._devices:
+        for device in cls._devices.values():
             device.close()
 
     @classmethod
@@ -137,20 +123,26 @@ class LinuxEventApi(EventApi):
             StateMgr.un_press_keys(event_code)
 
     @classmethod
-    def _convert_raw_keyboard_event(
-            cls,
-            event_val,
-            vk,
-            time_ms,
-            raw_event
-    ) -> KeyboardEvent:
-        dc = {
-            evdev.events.KeyEvent.key_up: KeyboardEvent.KeyUp,
-            evdev.events.KeyEvent.key_down: KeyboardEvent.KeyDown,
-            evdev.events.KeyEvent.key_hold: KeyboardEvent.KeySend,
-        }[event_val]
+    def _convert_raw_keyboard_event(cls, event: evdev.InputEvent) -> KeyboardEvent:
+        # dataclass
 
-        cls._handle_key_side_effects(vk, event_val)
+        # key up
+        if event.value == 0:
+            dc = evdev.events.KeyEvent.key_up
+
+        # key down
+        elif event.value == 1:
+            dc = evdev.events.KeyEvent.key_down
+
+        # key send
+        elif event.value == 2:
+            dc = evdev.events.KeyEvent.key_hold
+
+        else:
+            raise TypeError(f"event value not 0, 1, or 2: {event}")
+
+        vk = event.code
+        cls._handle_key_side_effects(vk, event.value)
 
         modifier_keys = cls._get_active_modifiers()
         key: LinuxKeyData
@@ -163,7 +155,7 @@ class LinuxEventApi(EventApi):
 
         except KeyError:
             for key_opt in LinuxKeyEnum:
-                if key_opt.value.vk == vk:
+                if key_opt.vk == vk:
                     # todo remove this
                     # noinspection PyTypeChecker
                     key = key_opt
@@ -178,63 +170,194 @@ class LinuxEventApi(EventApi):
             # keycode = vk
 
         return dc(
-            raw=raw_event,
-            time_ms=time_ms,
+            raw=event,
+            time_ms=event.timestamp(),
             key=key
         )
 
+    # todo get initial pos
+    # x, y
+    _mouse_pos = (0, 0)
+
     @classmethod
-    def _convert_raw_event_to_event(cls, event) -> any_event:
-        # magic
-        # https://github.com/gvalkov/python-evdev/blob/8c8014f78ceea2585a9092aedea5c4f528ec7ee8/evdev/events.py#L77
+    def _convert_mouse_move_event(cls, event: evdev.InputEvent):
+        dx, dy = 0, 0
 
-        # event: KeyEvent | RelEvent | AbsEvent | SynEvent = categorize(event)
-        # event -> (sec, usec, type, code, val)
-        time_ms = event[0] + event[1] / 1000000.0
-        event_type = event[2]
-        event_code = event[3]
-        event_val = event[4]
+        # dx move
+        if event.code == 0:
+            # val = pixels moved
+            # val < 0: move left
+            # val > 0: move right
+            dx = event.value
 
-        # todo remove (it's for debug)
-        print(event)
-        if event_type in (ecodes.EV_REL, ecodes.EV_SYN):
-            # ignore
-            return None
+        # dy move
+        if event.code == 1:
+            # val = pixels moved
+            # val < 0: move up
+            # val > 0: move down
+            dy = event.value
 
-        # mouse event
-        # todo "or might me touch"
-        if event_type == ecodes.EV_ABS:
-            # todo implement
-            return None
+        cls._mouse_pos = (
+            cls._mouse_pos[0] + dx,
+            cls._mouse_pos[1] + dy,
+        )
 
-        # todo implement scroll
-        #  https://stackoverflow.com/questions/15882665/how-to-read-out-scroll-wheel-info-from-dev-input-mice
+        return MouseEvent.Move(
+            time_ms=event.timestamp(),
+            raw=event,
+            pos=cls._mouse_pos,
+            delta=(dx, dy)
+        )
 
-        # keyboard/click event
-        if event_type == ecodes.EV_KEY:
-            return cls._convert_raw_keyboard_event(
-                event_val,
-                event_code,
-                time_ms,
-                event
+    @classmethod
+    def _convert_scroll_event(cls, event: evdev.InputEvent):
+        # scroll direction
+        if event.code == 8:
+            # val = 1: scroll up
+            # val = -1: scroll down
+            return
+
+        # scroll amount
+        if event.code == 11:
+            # val = scroll amount
+            # val > 0: scroll up
+            # val < 0: scroll down
+            return MouseEvent.Scroll(
+                time_ms=event.timestamp(),
+                raw=event,
+                pos=cls._mouse_pos,
+                direction="up" if event.value > 0 else "down"
             )
+
+    @classmethod
+    def _convert_raw_event_to_event(cls, event: evdev.InputEvent) -> any_event | None:
+        # sync event
+        if event.type == 0:
+            # no real purpose (probably)
+            return
+
+        # rel event
+        # mouse move, scroll
+        if event.type == 2:
+            if event.code in (0, 1):
+                return cls._convert_mouse_move_event(event)
+
+            if event.code in (8, 11):
+                return cls._convert_scroll_event(event)
+
+            print("unknown scroll: ", event)
+
+            return
+
+        # print(event)
+
+        # "button" event
+        # like a keyboard or button press
+        if event.type == 1:
+            # keycode = event.code
+            # characters are typed on "key down" and "key send"
+
+            if event.value in (0, 1, 2):
+                return cls._convert_raw_keyboard_event(event)
+
+            print("unknown button: ", event)
+
+        # idk
+        if event.type == 4:
+            # sent right before a "key down" or "key up" event
+
+            # the code seams to always be
+            # event.code = 4
+
+            # the val seams to correspond with the vk
+            # it's always the same for the same button
+            #     ive tried restarting the program
+            #     not checked:
+            #         restart computer
+            #         another keyboard
+            #         another layout
+
+            # if you want to compare
+            # specs
+            #     arch
+            #     swedish (nordic) layout
+            #     key-cron keyboad
+            # examples
+            #     q => val = 458772
+            #     w => val = 458778
+            #     e => val = 458760
+            #     r => val = 458773
+            #     t => val = 458775
+
+            if event.code == 4:
+                return
+
+            print("unknown idk event: ", event)
+            return
+
+        # lock keys
+        # e.g. caps_lock, num_lock etc
+        if event.type == 17:
+            # val = 1: on
+            # val = 0: off
+
+            # code = 0: num_lock
+            # code = 1: caps_lock
+            # there's probably more that I don't know about
+
+            # when switching on
+            # sent when the "key down" is sent
+
+            # when switching off
+            # sent when the "key up" is sent
+
+            if event.value in (0, 1) and event.code in (0, 1):
+                return
+
+            print("unknown lock key: ", event)
+
+        print("unknown event: ", event)
+
+        return
 
     @classmethod
     def fetch_new_events(cls) -> None:
         """ called to add waiting events to the queue """
-        r, w, x = select(cls._devices)
+        r, w, x = select(cls._devices, [], [])
+
         for file_device in r:
             for raw_event in cls._devices[file_device].read():
                 event = cls._convert_raw_event_to_event(raw_event)
+
+                if event is None:
+                    continue
+
                 cls.dispatch_event(event)
 
 
-if __name__ == '__main__':
-    try:
-        LinuxEventApi.start_listening()
-        while True:
-            LinuxEventApi.fetch_new_events()
-            time.sleep(0.01)
-    except BaseException as e:
-        LinuxEventApi.stop_listening()
-        raise e
+"""
+# start thing
+event at 1707574947.562808, code 04, type 04, val 458778
+
+# key {17} down
+event at 1707574947.562808, code 17, type 01, val 01
+
+# key {17} send
+# note that "send" is not sent at the same time as "down"
+event at 1707574947.819929, code 17, type 01, val 02
+event at 1707574947.859927, code 17, type 01, val 02
+event at 1707574947.896604, code 17, type 01, val 02
+
+# end thing
+event at 1707574948.538825, code 04, type 04, val 458778
+
+# key {17} up
+event at 1707574948.538825, code 17, type 01, val 00
+
+458795 q
+458772 w
+458778 e
+458760 r
+458773 t
+
+"""

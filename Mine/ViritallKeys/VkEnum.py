@@ -126,6 +126,12 @@ class KeyData:
 
 
 class MetaVkEnum(type):
+    _ignore = {
+        "_ignore",
+        "_keyname_to_v_code_map",
+        "_v_code_to_keyname_map",
+        "_enum_item_type",
+    }
     _keyname_to_v_code_map = {}
     _v_code_to_keyname_map = {}
     _enum_item_type: Type[KeyData]
@@ -156,6 +162,9 @@ class VkEnum(metaclass=MetaVkEnum):
         cls._keyname_to_v_code_map = {
             key: getattr(cls, key)
             for key in vars(cls)
+            if not key.startswith("__")
+            and not key.endswith("__")
+            and key not in cls._ignore
         }
 
         cls._v_code_to_keyname_map = {

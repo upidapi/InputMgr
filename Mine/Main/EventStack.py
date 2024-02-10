@@ -39,7 +39,7 @@ class EventStack:
 
                 yield _event_api.event_queue.pop(0)
         except KeyboardInterrupt:
+            print("stopping")
+
             _event_api.stop_listening()
-
             raise KeyboardInterrupt
-

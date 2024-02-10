@@ -17,10 +17,6 @@ _state_mgr = _backend.state_mgr
 ASSUME_NO_STATE_CHANGE = False
 
 
-# todo make the program actually respect the no_optimise flag
-#   if it has it then that event needs to happen
-#   probably implement by checking if it's a click or if it has
-#   the no_optimise flag in _minify_press_seq
 class _Up:
     def __init__(self, *vks: int, no_optimise=False):
         self.vks = set(vks)
@@ -48,8 +44,6 @@ class Down:
         self.data = data
 
 
-# todo make this both take a list of keys that have to be active
-#   and a action to do while that is true
 class Pressed:
     def __init__(self, pressed: (base_conv_from_types,), do: base_conv_from_types | Up | Down):
         self.pressed = pressed
@@ -208,7 +202,6 @@ class Keyboard:
 
     @classmethod
     def _to_press_seq(cls, *inp: all_conv_from_types) -> press_seq_type:
-        # todo handle (Up | Down)(str)
         out = []
 
         for part in inp:

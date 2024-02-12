@@ -46,7 +46,7 @@ class LinuxInputEvent:
 
 class LinuxEventApi(EventApi):
     _devices: dict[str, evdev.InputDevice] = {}
-    _pressed_keys: set[LinuxKeyData] = set()
+    # _pressed_keys: set[LinuxKeyData] = set()
 
     @classmethod
     def _get_devices(cls, paths):
@@ -82,9 +82,9 @@ class LinuxEventApi(EventApi):
         for device in cls._devices.values():
             device.close()
 
-    @classmethod
-    def get_pressed_keys(cls):
-        return cls._pressed_keys
+    # @classmethod
+    # def get_pressed_keys(cls):
+    #     return cls._pressed_keys
 
     @classmethod
     def _get_pressed_modifier_keys(cls):
@@ -94,7 +94,7 @@ class LinuxEventApi(EventApi):
         if none of these keys are pressed then
         """
         modifier_keys = set()
-        for key in cls._pressed_keys:
+        for key in LinuxStateMgr.get_pressed_keys():
             if key in LinuxStateMgr.MODIFIER_MAP:
                 modifier_keys.add(key)
 
@@ -109,8 +109,12 @@ class LinuxEventApi(EventApi):
         so if shift_l, shift_r, ctrl_r are pressed
         => shift, ctrl
         """
+        # todo probably move this to the "LinuxLayout" or "LinuxStateMgr"
+
         modifier_keys = {None}
-        for key in cls._pressed_keys:
+        for key in LinuxStateMgr.get_pressed_keys():
+            key: LinuxKeyData
+
             modifier_keys.add(
                 LinuxStateMgr.MODIFIER_MAP.get(
                     key, None
@@ -133,7 +137,8 @@ class LinuxEventApi(EventApi):
             LinuxStateMgr.un_press_keys(event_code)
 
     @classmethod
-    def _convert_raw_keyboard_event(cls, event: LinuxInputEvent) -> KeyboardEvent:
+    def _convert_raw_keyboard_event(cls, event: LinuxInputEvent) \
+            -> tuple[KeyboardEvent.event_types, ...]:
         # dataclass
 
         # key up
@@ -178,10 +183,20 @@ class LinuxEventApi(EventApi):
 
                 key = LinuxKeyData.from_vk(vk)
 
-        return dc(
-            raw=event,
-            time_ms=event.time_ms,
-            key_data=key
+        args = {
+            "raw": event,
+            "time_ms": event.time_ms,
+            "key_data": key
+        }
+
+        if isinstance(dc, KeyboardEvent.KeyDown):
+            return (
+                KeyboardEvent.KeyDown(*args),
+                KeyboardEvent.KeySend(*args),
+            )
+
+        return (
+            dc(*args),
         )
 
     # todo get initial pos
@@ -192,7 +207,8 @@ class LinuxEventApi(EventApi):
     _mouse_pos = (0, 0)
 
     @classmethod
-    def _convert_mouse_move_event(cls, event: LinuxInputEvent) -> MouseEvent.event_types | None:
+    def _convert_mouse_move_event(cls, event: LinuxInputEvent) \
+            -> tuple[MouseEvent.event_types, ...]:
         dx, dy = 0, 0
 
         # dx move
@@ -222,35 +238,37 @@ class LinuxEventApi(EventApi):
         )
 
     @classmethod
-    def _convert_scroll_event(cls, event: LinuxInputEvent):
+    def _convert_scroll_event(cls, event: LinuxInputEvent) \
+            -> tuple[MouseEvent.event_types, ...]:
         # todo add support for sideways scroll
 
         # scroll direction
         if event.code == 8:
             # val = 1: scroll up
             # val = -1: scroll down
-            return
+            return ()
 
         # scroll amount
         if event.code == 11:
             # val = scroll amount
             # val > 0: scroll up
             # val < 0: scroll down
-            return MouseEvent.Scroll(
+            return (MouseEvent.Scroll(
                 time_ms=event.time_ms,
                 raw=event,
                 pos=cls._mouse_pos,
                 dy=-event.value,
-            )
+            ), )
 
     @classmethod
-    def _convert_raw_event_to_event(cls, event: evdev.InputEvent) -> any_event | None:
+    def _convert_raw_event_to_event(cls, event: evdev.InputEvent) \
+            -> tuple[any_event, ...]:
         event = LinuxInputEvent(event)
 
         # sync event
         if event.type == 0:
             # no real purpose (probably)
-            return
+            return ()
 
         # rel event
         # mouse move, scroll
@@ -263,7 +281,7 @@ class LinuxEventApi(EventApi):
 
             print("unknown scroll: ", event)
 
-            return
+            return ()
 
         # print(event)
 
@@ -306,10 +324,10 @@ class LinuxEventApi(EventApi):
             #     t => val = 458775
 
             if event.code == 4:
-                return
+                return ()
 
             print("unknown idk event: ", event)
-            return
+            return ()
 
         # lock keys
         # e.g. caps_lock, num_lock etc
@@ -328,13 +346,13 @@ class LinuxEventApi(EventApi):
             # sent when the "key up" is sent
 
             if event.value in (0, 1) and event.code in (0, 1):
-                return
+                return ()
 
             print("unknown lock key: ", event)
 
         print("unknown event: ", event)
 
-        return
+        return ()
 
     @classmethod
     def fetch_new_events(cls) -> None:
@@ -343,11 +361,8 @@ class LinuxEventApi(EventApi):
 
         for file_device in r:
             for raw_event in cls._devices[file_device].read():
-                event = cls._convert_raw_event_to_event(raw_event)
-
-                if event is None:
-                    continue
+                events = cls._convert_raw_event_to_event(raw_event)
 
                 # print(raw_event)
                 # print(event)
-                cls.dispatch_event(event)
+                cls.dispatch_event(*events)

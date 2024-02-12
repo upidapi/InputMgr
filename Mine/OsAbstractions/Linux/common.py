@@ -294,7 +294,7 @@ class LinuxLayout:
         # print(cls._char_table)
 
     @classmethod
-    def for_vk(cls, vk, modifiers):
+    def for_vk(cls, vk, modifiers: set[LinuxKeyData]):
         """Reads a key for a virtual key code and modifier state.
 
         :param int vk: The virtual key code.

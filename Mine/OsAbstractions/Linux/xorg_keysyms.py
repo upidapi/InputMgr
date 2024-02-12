@@ -1631,7 +1631,7 @@ SYMBOLS = {
     'zerosuperior': (0x1002070, u'\u2070'),
     'zstroke': (0x10001b6, u'\u01B6')}
 
-# todo is this all?
+# todo "is this all?"
 DEAD_KEYS = {
     u'\u0307': u'\u02D9',
     u'\u030A': u'\u02DA',
@@ -1689,12 +1689,29 @@ KEYPAD_KEYS = {
     'KP_Tab': 0xff89,
     'KP_Up': 0xff97}
 
-CHARS = {
+_CHARS = {
     codepoint: name
     for name, (keysym, codepoint) in SYMBOLS.items()
     if codepoint}
 
-KEYSYMS = {
+
+def unicode_char_to_name(unicode_char):
+    return _CHARS[unicode_char]
+
+
+def name_to_unicode_char(unicode_char):
+    return SYMBOLS[unicode_char][1]
+
+
+_KEY_SYMS = {
     keysym: name
     for name, (keysym, codepoint) in SYMBOLS.items()
     if codepoint}
+
+
+def symbolic_key_to_name(symbolic_key):
+    return _KEY_SYMS[symbolic_key]
+
+
+def name_to_symbolic_key(unicode_char):
+    return SYMBOLS[unicode_char][0]

@@ -1,7 +1,5 @@
 import time
-from typing import Literal, Tuple, Self
-
-import evdev
+from typing import Self
 
 from Mine.Events import KeyboardEvent
 from Mine.OsAbstractions import get_backend, get_backend_type
@@ -277,8 +275,6 @@ class Keyboard:
     #             raise TypeError(f"invalid type in the seq {type(part)=} {part=}")
     #
     #     return tuple(out)
-
-    # todo handle dead keys
 
     @classmethod
     def _state_part_to_press_seq(

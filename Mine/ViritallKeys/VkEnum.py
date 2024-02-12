@@ -1,4 +1,5 @@
 import unicodedata
+# from abc import abstractmethod, ABC
 from typing import Iterator, Type
 
 
@@ -8,7 +9,6 @@ class KeyData:
             vk: int = None,
             char: str = None,
             data: dict = None,
-            is_dead: bool = False,
     ):
 
         # no actual data
@@ -18,21 +18,36 @@ class KeyData:
         self.vk = vk
         self.char = char
         self.data = data and {}
-        self.is_dead = is_dead
 
-        if self.is_dead:
+        self.combining = None
+        self.is_dead = False
+
+        self._calc_is_dead()
+
+        # find out if key is dead
+        # todo: does this always work?
+
+        # can't be dead of it isn't a char
+        if self.char:
             try:
                 self.combining = unicodedata.lookup(
                     'COMBINING ' + unicodedata.name(self.char)
                 )
+
+                self.is_dead = self._calc_is_dead()
             except KeyError:
-                self.is_dead = False
-                self.combining = None
-            else:
-                if not self.combining:
-                    raise KeyError(char)
-        else:
-            self.combining = None
+                pass
+            except ValueError:
+                pass
+
+    def _calc_is_dead(self):
+        """
+        calculates if character is dead
+
+        if you want it to be able to detect dead keys
+        then you should overwrite this function
+        """
+        return False
 
     def __repr__(self):
         # todo maybe change to something more descriptive
@@ -119,17 +134,17 @@ class KeyData:
         """
         return cls(char=char, **kwargs)
 
-    @classmethod
-    def from_dead(cls, char, **kwargs):
-        """Creates a dead key.
-
-        :param char: The dead key. This should be the unicode character
-            representing the stand alone character, such as ``'~'`` for
-            *COMBINING TILDE*.
-
-        :return: a key code
-        """
-        return cls(char=char, is_dead=True, **kwargs)
+    # @classmethod
+    # def from_dead(cls, char, **kwargs):
+    #     """Creates a dead key.
+    #
+    #     :param char: The dead key. This should be the unicode character
+    #         representing the stand alone character, such as ``'~'`` for
+    #         *COMBINING TILDE*.
+    #
+    #     :return: a key code
+    #     """
+    #     return cls(char=char, is_dead=True, **kwargs)
 
 
 class MetaVkEnum(type):

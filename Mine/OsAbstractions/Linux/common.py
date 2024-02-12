@@ -8,6 +8,7 @@ import subprocess
 import evdev
 
 from Mine.OsAbstractions.Linux import xorg_keysyms
+from Mine.OsAbstractions.Linux.xorg_keysyms import unicode_char_to_name, name_to_symbolic_key
 from Mine.ViritallKeys.VkEnum import KeyData, VkEnum
 
 
@@ -16,6 +17,18 @@ class LinuxKeyData(KeyData):
         super().__init__(**kwargs)
         self.x_name = x_name
         # self.kernel_name = kernel_name
+
+    def _calc_is_dead(self):
+        try:
+            name = unicode_char_to_name(self.combining)
+            symbolic_key = name_to_symbolic_key(name)
+
+            if symbolic_key:
+                return True
+            else:
+                return False
+        except KeyError:
+            pass
 
 
 def _k_from_name(x_name, kernel_name, **kwargs):
@@ -197,7 +210,7 @@ class LinuxLayout:
         )
 
         if char:
-            return KeyData.from_char(char, vk=vk)
+            return LinuxKeyData.from_char(char, vk=vk)
 
         mapped_name = {
                 'one': '1',

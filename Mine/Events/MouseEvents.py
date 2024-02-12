@@ -32,9 +32,15 @@ class UnClick(_BaseMouseEvent):
 
 @dataclass(frozen=True)
 class Scroll(_BaseMouseEvent):
-    # todo possibly use a dx, dy format to be able to handle
-    #   variable size scrolls along with sideways scrolls
-    direction: Literal["up", "down"]
+    # dy > 0: scroll down
+    # dy < 0: scroll up
+    dy: int
+
+    # dx > 0: scroll right
+    # dx < 0: scroll left
+    dx: int
+
+    # direction: Literal["up", "down"]
 
 
 event_types = Move | Click | UnClick | Scroll

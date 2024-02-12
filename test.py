@@ -19,7 +19,6 @@ from Mine.OsAbstractions.Linux.xorg_keysyms import unicode_char_to_name, name_to
 # seq = Keyboard._state_to_press_seq(*sd)
 # print(seq)
 
-time.sleep(1)
 print("2 sec")
 time.sleep(2)
 

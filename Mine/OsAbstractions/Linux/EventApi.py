@@ -223,6 +223,8 @@ class LinuxEventApi(EventApi):
 
     @classmethod
     def _convert_scroll_event(cls, event: LinuxInputEvent):
+        # todo add support for sideways scroll
+
         # scroll direction
         if event.code == 8:
             # val = 1: scroll up
@@ -238,7 +240,7 @@ class LinuxEventApi(EventApi):
                 time_ms=event.time_ms,
                 raw=event,
                 pos=cls._mouse_pos,
-                direction="up" if event.value > 0 else "down"
+                dy=-event.value,
             )
 
     @classmethod

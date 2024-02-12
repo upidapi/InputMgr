@@ -32,6 +32,7 @@ class EventApi(ABC):
         """ helper function to add a new event to the event stack """
 
         # check if event is blocked
+        # todo fix this so that it sends the "send" event on the keydown
         for blocked_event in cls._blocked_events:
             if event.__class__ == blocked_event.__class__:
                 if isinstance(event, KeyboardEvent.event_types):

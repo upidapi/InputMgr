@@ -11,9 +11,13 @@ class Mouse:
         _mouse.set_pos(cx + dx, cy + dy)
 
     @classmethod
-    def set_pos(cls, dx, dy):
+    def set_pos(cls, x, y):
         """ move the mouse relative to its current pos """
-        cx, cy = _mouse.get_pos()
-        _mouse.set_pos(cx + dx, cy + dy)
+        _mouse.set_pos(x, y)
+
+    @classmethod
+    def get_pos(cls):
+        """ move the mouse relative to its current pos """
+        return _mouse.get_pos()
 
     # todo fully implement this

@@ -42,6 +42,13 @@ class KeyData:
             return repr(self.char)
         return f"<{self.vk}>"
 
+    def _get_important_vars(self):
+        return tuple(
+            x
+            for x in vars(self)
+            if not x.startswith("__") and not x.endswith("__")
+        )
+
     def __eq__(self, other):
         if self.__class__ != other.__class__:
             return False
@@ -49,11 +56,11 @@ class KeyData:
         return all(
             getattr(self, x) == getattr(other, x)
             if hasattr(other, x) else False
-            for x in vars(self)
+            for x in self._get_important_vars()
         )
 
     def __hash__(self):
-        return hash((str(getattr(self, x)) for x in vars(self)))
+        return hash(self._get_important_vars())
 
     def join(self, key):
         """

@@ -1,9 +1,9 @@
 import evdev
 
 from Mine.OsAbstractions.Abstract import AbsKeyboard
-from Mine.OsAbstractions.Abstract.Keyboard import InvalidKeyException
-from Mine.OsAbstractions.Linux.StateMgr import StateMgr
-from Mine.OsAbstractions.Linux.common import LinuxKeyData, LinuxLayout
+from Mine.OsAbstractions.Abstract.Keyboard import InvalidKeyException, StateData
+from Mine.OsAbstractions.Linux.StateMgr import LinuxStateMgr
+from Mine.OsAbstractions.Linux.common import LinuxKeyData, LinuxLayout, LinuxKeyEnum
 
 
 class LinuxKeyboard(AbsKeyboard):
@@ -38,155 +38,102 @@ class LinuxKeyboard(AbsKeyboard):
 
     @classmethod
     def get_key_data_from_char(cls, char: str) -> LinuxKeyData:
-        return LinuxLayout.for_char(char)
+        vk, mod = LinuxLayout.for_char(char)
+        # print(char, vk, mod, LinuxLayout.for_vk(vk, mod))
+        # print(
+        #     vk, mod,
+        #     LinuxLayout._vk_table[vk],
+        #     LinuxKeyEnum.alt_gr,
+        #     LinuxLayout.for_vk(vk, {LinuxKeyEnum.alt_gr}),
+        #     LinuxLayout.for_vk(vk, mod),
+        # )
+
+        return LinuxLayout.for_vk(vk, mod)
 
     @classmethod
     def get_vk_from_key_data(cls, key_data: LinuxKeyData) -> int:
         if key_data.vk is not None:
             return key_data.vk
         elif key_data.char is not None:
-            return LinuxLayout.for_char(key_data.char)[1]
+            return LinuxLayout.for_char(key_data.char)[0]
         else:
             raise InvalidKeyException(key_data)
 
     @classmethod
-    def calc_buttons_for_key(cls, key: LinuxKeyData)\
-            -> (int, set[int], set[int]):
-        """
-        gets the buttons that needs to be pressed to get a specific char
-        """
-        required_modifiers: set[LinuxKeyData] = set()
-        vk = cls.get_vk_from_key_data(key)
+    def _get_req_mod_state(cls, raw_required_modifiers) \
+            -> tuple[set[int], set[int]]:
+        required_modifiers: set[int] = {x.vk for x in raw_required_modifiers}
 
-        # pressed_keys = LinuxEventApi.get_pressed_keys()
         need_pressed = set()
         need_unpressed = set()
 
-        rev_multidict = {}
-        for key, value in StateMgr.MODIFIER_MAP.items():
-            rev_multidict.setdefault(value, set()).add(key)
+        # todo possibly move this to StateMgr
+        rev_multidict: dict[int, set[int]] = {}
+        for key, value in LinuxStateMgr.MODIFIER_MAP.items():
+            if value.vk in rev_multidict.keys():
+                rev_multidict[value.vk].add(key.vk)
+            else:
+                rev_multidict[value.vk] = {key.vk}
 
-        for keys, generic_key in rev_multidict:
+        for generic_key, keys in rev_multidict.items():
             # this assumes the mod key is always the base form
             # so shift_l and not shift_r
             if generic_key in required_modifiers:
                 need_pressed.add(generic_key)
             else:
-                need_unpressed += keys
+                need_unpressed.update(keys)
 
-        def conv_to_vk(x: set[LinuxKeyData]) -> set[int]:
-            return set(
-                key_data.vk
-                for key_data in x
-            )
+        return need_pressed | required_modifiers, need_unpressed
 
-        return vk, conv_to_vk(need_pressed), conv_to_vk(need_unpressed)
+    @classmethod
+    def _calc_buttons_for_layout_char(cls, char: str) -> StateData:
 
+        vk, raw_required_modifiers = LinuxLayout.for_char(char)
 
-# class ListenerMixin(object):
-#     """A mixin for *uinput* event listeners.
-#
-#     Subclasses should set a value for :attr:`_EVENTS` and implement
-#     :meth:`_handle`.
-#     """
-#     #: The events for which to listen
-#     _EVENTS = tuple()
-#
-#     def __init__(self):
-#         self._dev = self._device(
-#             DEVICE_PATHS or evdev.list_devices()
-#         )
-#         if SUPPRESS:
-#             self._dev.grab()
-#
-#         self._layout = LAYOUT
-#         self._modifiers = set()
-#
-#     def _run(self):
-#         for event in self._dev.read_loop():
-#             if event.type in self._EVENTS:
-#                 self._handle(event)
-#
-#     def _stop_platform(self):
-#         self._dev.close()
-#
-#     def _device(self, paths):
-#         """Attempts to load a readable keyboard device.
-#
-#         :param paths: A list of paths.
-#
-#         :return: a compatible device
-#         """
-#         dev, count = None, 0
-#         for path in paths:
-#             # Open the device
-#             try:
-#                 next_dev = evdev.InputDevice(path)
-#             except OSError:
-#                 continue
-#
-#             # Does this device provide more handled event codes?
-#             capabilities = next_dev.capabilities()
-#             next_count = sum(
-#                 len(codes)
-#                 for event, codes in capabilities.items()
-#                 if event in self._EVENTS)
-#             if next_count > count:
-#                 dev = next_dev
-#                 count = next_count
-#             else:
-#                 next_dev.close()
-#
-#         if dev is None:
-#             raise OSError('no keyboard device available')
-#         else:
-#             return dev
-#
-#     _EVENTS = (
-#         evdev.ecodes.EV_KEY,)
-#
-#     #: A
-#     _MODIFIERS = {
-#         LinuxKeyEnum.alt.value.vk: LinuxKeyEnum.alt,
-#         LinuxKeyEnum.alt_l.value.vk: LinuxKeyEnum.alt,
-#         LinuxKeyEnum.alt_r.value.vk: LinuxKeyEnum.alt,
-#         LinuxKeyEnum.alt_gr.value.vk: LinuxKeyEnum.alt_gr,
-#         LinuxKeyEnum.shift.value.vk: LinuxKeyEnum.shift,
-#         LinuxKeyEnum.shift_l.value.vk: LinuxKeyEnum.shift,
-#         LinuxKeyEnum.shift_r.value.vk: LinuxKeyEnum.shift}
-#
-#     def _handle(self, event):
-#         """
-#         Handles a single event.
-#
-#         This method should call one of the registered event callbacks.
-#
-#         :param event: The event.
-#         """
-#         is_press = event.value in (KeyEvent.key_down, KeyEvent.key_hold)
-#         vk = event.code
-#
-#         # Update the modifier state
-#         if vk in self._MODIFIERS:
-#             modifier = self._MODIFIERS[vk]
-#             if is_press:
-#                 self._modifiers.add(modifier)
-#             elif modifier in self._modifiers:
-#                 self._modifiers.remove(modifier)
-#
-#         # Attempt to map the virtual key code to a key
-#         try:
-#             key = self._layout.for_vk(vk, self._modifiers)
-#         except KeyError:
-#             try:
-#                 key = next(
-#                     key
-#                     for key in LinuxKeyEnum
-#                     if key.value.vk == vk)
-#             except StopIteration:
-#                 key = KeyCode.from_vk(vk)
-#
-#         if is_press:
-#             self.on_press(key)
-#         else:
-#             self.on_release(key)
+        key_data = LinuxLayout.for_vk(vk, raw_required_modifiers)
+
+        need_pressed, need_unpressed = cls._get_req_mod_state(
+            raw_required_modifiers
+        )
+
+        # if the char is a dead key then we have to press it
+        # twice for it to show up
+        return StateData(
+            do=(vk, ) * (2 if key_data.is_dead else 1),
+            need_pressed=need_pressed,
+            need_unpressed=need_unpressed
+        )
+
+    @classmethod
+    def _calc_buttons_for_unicode_char(cls, char: str) -> StateData:
+        # consists of the chars: 0-9, a-f
+        unicode_hex = hex(ord(char))[2:]
+
+        do: list[int] = [
+            LinuxLayout.for_char(char)[0]
+            for char in f"u{unicode_hex}"
+        ]
+        do.append(LinuxKeyEnum.enter.vk)
+
+        need_pressed, need_unpressed = cls._get_req_mod_state(
+            {LinuxKeyEnum.shift, LinuxKeyEnum.ctrl}
+        )
+
+        return StateData(
+            do=tuple(do),
+            need_pressed=need_pressed,
+            need_unpressed=need_unpressed,  # | {LinuxKeyEnum.ctrl},
+        )
+
+    @classmethod
+    def calc_buttons_for_char(cls, char: str) -> StateData:
+        """
+        gets the buttons that needs to be pressed to get a specific char
+        """
+        if len(char) != 1:
+            raise TypeError(f"len of char must be 1 {char=}")
+
+        if LinuxLayout.char_in_layout(char):
+            return cls._calc_buttons_for_layout_char(char)
+        else:
+            return cls._calc_buttons_for_unicode_char(char)

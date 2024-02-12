@@ -48,13 +48,13 @@ from Mine.ViritallKeys.VkEnum import KeyData
 #         )
 
 
-@dataclass
+@dataclass(frozen=True)
 class _BaseKeyboardEvent(_BaseEvent):
     key_data: KeyData
     # char: str
 
 
-@dataclass
+@dataclass(frozen=True)
 class KeySend(_BaseKeyboardEvent):
     """
     This will happen when a key is pressed. But keeps being sent
@@ -64,14 +64,14 @@ class KeySend(_BaseKeyboardEvent):
     """
 
 
-@dataclass
+@dataclass(frozen=True)
 class KeyDown(_BaseKeyboardEvent):
     """
     Called when a key is pressed
     """
 
 
-@dataclass
+@dataclass(frozen=True)
 class KeyUp(_BaseKeyboardEvent):
     """
     Called when a key is unpressed

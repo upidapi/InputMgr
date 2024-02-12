@@ -5,13 +5,13 @@ from typing import Literal
 from Mine.Events._BaseEvent import _BaseEvent
 
 
-@dataclass
+@dataclass(frozen=True)
 class _BaseMouseEvent(_BaseEvent):
     # pos of the mouse
     pos: (int, int)
 
 
-@dataclass
+@dataclass(frozen=True)
 class Move(_BaseMouseEvent):
     # mouse move since last event
     delta: (int, int)
@@ -20,17 +20,17 @@ class Move(_BaseMouseEvent):
 button_type = Literal["left", "middle", "right", "forward", "backward"]
 
 
-@dataclass
+@dataclass(frozen=True)
 class Click(_BaseMouseEvent):
     button: button_type
 
 
-@dataclass
+@dataclass(frozen=True)
 class UnClick(_BaseMouseEvent):
     button: button_type
 
 
-@dataclass
+@dataclass(frozen=True)
 class Scroll(_BaseMouseEvent):
     # todo possibly use a dx, dy format to be able to handle
     #   variable size scrolls along with sideways scrolls

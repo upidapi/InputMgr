@@ -4,7 +4,7 @@ import evdev
 
 from Mine.Events import KeyboardEvent, any_event, MouseEvent
 from Mine.OsAbstractions.Abstract import EventApi
-from Mine.OsAbstractions.Linux.StateMgr import StateMgr
+from Mine.OsAbstractions.Linux.StateMgr import LinuxStateMgr
 from Mine.OsAbstractions.Linux.common import LinuxKeyEnum, LinuxKeyData, LinuxLayout
 
 DEVICE_PATHS = []
@@ -45,7 +45,7 @@ class LinuxInputEvent:
 
 
 class LinuxEventApi(EventApi):
-    _devices: dict[str, evdev.InputDevice] = []
+    _devices: dict[str, evdev.InputDevice] = {}
     _pressed_keys: set[LinuxKeyData] = set()
 
     @classmethod
@@ -95,7 +95,7 @@ class LinuxEventApi(EventApi):
         """
         modifier_keys = set()
         for key in cls._pressed_keys:
-            if key in StateMgr.MODIFIER_MAP:
+            if key in LinuxStateMgr.MODIFIER_MAP:
                 modifier_keys.add(key)
 
         return modifier_keys
@@ -112,7 +112,7 @@ class LinuxEventApi(EventApi):
         modifier_keys = {None}
         for key in cls._pressed_keys:
             modifier_keys.add(
-                StateMgr.MODIFIER_MAP.get(
+                LinuxStateMgr.MODIFIER_MAP.get(
                     key, None
                 )
             )
@@ -128,9 +128,9 @@ class LinuxEventApi(EventApi):
         )
 
         if is_press:
-            StateMgr.press_keys(event_code)
+            LinuxStateMgr.press_keys(event_code)
         else:
-            StateMgr.un_press_keys(event_code)
+            LinuxStateMgr.un_press_keys(event_code)
 
     @classmethod
     def _convert_raw_keyboard_event(cls, event: LinuxInputEvent) -> KeyboardEvent:

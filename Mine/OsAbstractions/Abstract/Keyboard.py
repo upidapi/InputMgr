@@ -1,5 +1,6 @@
 """ abstract representation for a keyboard """
 from abc import ABC, abstractmethod
+from typing import Self
 
 from Mine.ViritallKeys.VkEnum import KeyData
 
@@ -21,6 +22,36 @@ class InvalidCharacterException(Exception):
     second the character.
     """
     pass
+
+
+base_conv_from_types = int | str | KeyData
+
+
+# exposed to the user
+class Up:
+    def __init__(self, *data: base_conv_from_types):
+        self.data = data
+
+
+class Down:
+    def __init__(self, *data: base_conv_from_types):
+        self.data = data
+
+
+class StateData:
+    def __init__(
+            self,
+            do: tuple[base_conv_from_types | Up | Down | Self, ...],
+            need_pressed: set[int] = None,
+            need_unpressed: set[int] = None
+    ):
+        # note:
+        # if a keys is in both need_pressed and need_unpressed
+        # then it's guaranteed to have been released before pressed
+
+        self.do = do
+        self.need_pressed = need_pressed or set()
+        self.need_unpressed = need_unpressed or set()
 
 
 class AbsKeyboard(ABC):
@@ -63,19 +94,22 @@ class AbsKeyboard(ABC):
     #     """
     #     raise NotImplementedError
 
+    # todo handle unicode keys
     @classmethod
     @abstractmethod
-    def calc_buttons_for_key(cls, key: KeyData)\
-            -> (int, set[int], set[int]):
+    def calc_buttons_for_char(cls, char: str) -> StateData:
         """
         gets the buttons that needs to be pressed to get a specific KeyData
 
-        if it has a "vk" it simply sends it
+        sometimes multiple buttons are needed
+            e.g. dead chars
+            unicode chars
 
-        otherwise it uses the "char" to find what modifiers
-        and key that needs to be pressed
+        returns in the following format
+            a tuple of data_tuples where each data_tuple is one button press
+            the data_tuple is in the form of (vk, setup, cleanup)
 
-        :return: vk, setup, cleanup
+        :return: ((vk, setup, cleanup), ...)
         """
 
     @classmethod

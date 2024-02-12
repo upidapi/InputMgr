@@ -42,21 +42,27 @@ def _k_from_name(x_name, kernel_name, **kwargs):
 class LinuxKeyEnum(VkEnum, enum_item_type=LinuxKeyData):
     alt = _k_from_name('Alt_L', 'KEY_LEFTALT')
     alt_l = _k_from_name('Alt_L', 'KEY_LEFTALT')
+
     alt_r = _k_from_name('Alt_R', 'KEY_RIGHTALT')
     alt_gr = _k_from_name('Mode_switch', 'KEY_RIGHTALT')
+
     backspace = _k_from_name('BackSpace', 'KEY_BACKSPACE')
     caps_lock = _k_from_name('Caps_Lock', 'KEY_CAPSLOCK')
+
     cmd = _k_from_name('Super_L', 'KEY_LEFTMETA')
     cmd_l = _k_from_name('Super_L', 'KEY_LEFTMETA')
     cmd_r = _k_from_name('Super_R', 'KEY_RIGHTMETA')
+
     ctrl = _k_from_name('Control_L', 'KEY_LEFTCTRL')
     ctrl_l = _k_from_name('Control_L', 'KEY_LEFTCTRL')
     ctrl_r = _k_from_name('Control_R', 'KEY_RIGHTCTRL')
+
     delete = _k_from_name('Delete', 'KEY_DELETE')
     down = _k_from_name('Down', 'KEY_DOWN')
     end = _k_from_name('End', 'KEY_END')
     enter = _k_from_name('Return', 'KEY_ENTER')
     esc = _k_from_name('Escape', 'KEY_ESC')
+
     f1 = _k_from_name('F1', 'KEY_F1')
     f2 = _k_from_name('F2', 'KEY_F2')
     f3 = _k_from_name('F3', 'KEY_F3')
@@ -77,6 +83,7 @@ class LinuxKeyEnum(VkEnum, enum_item_type=LinuxKeyData):
     f18 = _k_from_name('F18', 'KEY_F18')
     f19 = _k_from_name('F19', 'KEY_F19')
     f20 = _k_from_name('F20', 'KEY_F20')
+
     home = _k_from_name('Home', 'KEY_HOME')
     left = _k_from_name('Left', 'KEY_LEFT')
     page_down = _k_from_name('Page_Down', 'KEY_PAGEDOWN')
@@ -163,8 +170,8 @@ class LinuxLayout:
             """ The shifted alternative key. """
             return self._alt_shifted
 
-    _vk_table: dict[int, Key]
-    _char_table: dict[str, (Key, set[Key])]
+    _vk_table: dict[int, Key] = {}
+    _char_table: dict[str, tuple[int, set[LinuxKeyData]]] = {}
 
     @staticmethod
     def _parse_raw_key(vk, name):
@@ -220,20 +227,20 @@ class LinuxLayout:
         we may want to implement this ourselves.
         """
         # for debug when you don't have root
-        # data_path = os.path.join(
-        #     os.path.dirname(__file__),
-        #     "ExampleData.txt"
-        # )
-        # with open(data_path) as f:
-        #     raw_data = f.read()
+        data_path = os.path.join(
+            os.path.dirname(__file__),
+            "ExampleData.txt"
+        )
+        with open(data_path) as f:
+            raw_data = f.read()
 
-        raw_data = subprocess.check_output(
-            ['dumpkeys', '--full-table', '--keys-only']
-        ).decode('utf-8')
+        # raw_data = subprocess.check_output(
+        #     ['dumpkeys', '--full-table', '--keys-only']
+        # ).decode('utf-8')
 
         key_data = cls.KEYCODE_RE.findall(raw_data)
 
-        for keycode, names in key_data:
+        for keycode, names in key_data[::-1]:
 
             vk = int(keycode)
             keys = tuple(
@@ -258,7 +265,7 @@ class LinuxLayout:
                     (keys.shifted, {LinuxKeyEnum.shift}),
                     (keys.alt, {LinuxKeyEnum.alt_gr}),
                     (keys.alt_shifted, {LinuxKeyEnum.shift, LinuxKeyEnum.alt_gr}),
-            ):
+            )[::-1]:
                 key: LinuxKeyData
 
                 if key is None:
@@ -270,6 +277,8 @@ class LinuxLayout:
                 cls._char_table[key.char] = (
                     vk, modifier_keys
                 )
+
+        # print(cls._char_table)
 
     @classmethod
     def for_vk(cls, vk, modifiers):
@@ -298,7 +307,7 @@ class LinuxLayout:
         return full_key.normal
 
     @classmethod
-    def for_char(cls, char: str) -> (Key, set[Key]):
+    def for_char(cls, char: str) -> tuple[int, set[LinuxKeyData]]:
         """Reads a virtual key code and modifier state for a character.
 
         :param str char: The character.
@@ -308,6 +317,10 @@ class LinuxLayout:
         :raises KeyError: if ``vk`` is an unknown key
         """
         return cls._char_table[char]
+
+    @classmethod
+    def char_in_layout(cls, char: str) -> bool:
+        return char in cls._char_table
 
 
 def _init_layout():

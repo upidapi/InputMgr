@@ -5,7 +5,7 @@ class AbsStateMgr:
     _pressed_keys = set()
 
     @classmethod
-    def get_pressed_keys(cls):
+    def get_pressed_keys(cls) -> set[KeyData]:
         return cls._pressed_keys
 
     @classmethod

@@ -1631,6 +1631,7 @@ SYMBOLS = {
     'zerosuperior': (0x1002070, u'\u2070'),
     'zstroke': (0x10001b6, u'\u01B6')}
 
+# todo is this all?
 DEAD_KEYS = {
     u'\u0307': u'\u02D9',
     u'\u030A': u'\u02DA',
@@ -1646,7 +1647,8 @@ DEAD_KEYS = {
     u'\u0332': u'\u005F',
     u'\u0304': u'\u00AF',
     u'\u0328': u'\u02DB',
-    u'\u0303': u'\u007E'}
+    u'\u0303': u'\u007E'
+}
 
 KEYPAD_KEYS = {
     'KP_0': 0xffb0,

@@ -7,7 +7,7 @@ from Mine.OsAbstractions.Abstract.StateMgr import AbsStateMgr
 
 
 class AbsBackend:
-    event_api: Type[EventApi]
-    mouse_controller: Type[AbsMouse]
-    keyboard_controller: Type[AbsKeyboard]
-    state_mgr: Type[AbsStateMgr]
+    EventApi: Type[EventApi]
+    Mouse: Type[AbsMouse]
+    Keyboard: Type[AbsKeyboard]
+    # state_mgr: Type[AbsStateMgr]

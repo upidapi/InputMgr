@@ -4,8 +4,8 @@ import evdev
 
 from Mine.Events import KeyboardEvent, any_event, MouseEvent
 from Mine.OsAbstractions.Abstract import EventApi
+from Mine.OsAbstractions.Linux.LinuxVk import LinuxKeyData, LinuxKeyEnum, LinuxLayout
 from Mine.OsAbstractions.Linux.StateMgr import LinuxStateMgr
-from Mine.OsAbstractions.Linux.common import LinuxKeyEnum, LinuxKeyData, LinuxLayout
 
 DEVICE_PATHS = []
 SUPPRESS = False
@@ -111,7 +111,7 @@ class LinuxEventApi(EventApi):
         """
         # todo probably move this to the "LinuxLayout" or "LinuxStateMgr"
 
-        modifier_keys = {None}
+        modifier_keys: set[LinuxKeyData | None] = {None}
         for key in LinuxStateMgr.get_pressed_keys():
             key: LinuxKeyData
 

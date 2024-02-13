@@ -1,5 +1,4 @@
 import unicodedata
-# from abc import abstractmethod, ABC
 from typing import Iterator, Type
 
 
@@ -13,7 +12,7 @@ class KeyData:
 
         # no actual data
         if all(thing is None for thing in [vk, char]):
-            raise ValueError("no data provided, you must provide vk or key")
+            raise ValueError("no data provided, you must provide vk or data")
 
         self.vk = vk
         self.char = char

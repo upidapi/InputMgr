@@ -1,6 +1,7 @@
 """ abstract representation for a keyboard """
 
 from abc import ABC, abstractmethod
+from typing import Literal
 
 
 class AbsMouse(ABC):
@@ -20,12 +21,18 @@ class AbsMouse(ABC):
         # might be int, int and not float, float
         raise NotImplementedError
 
+    _buttons = Literal["left", "middle", "right", "forward", "back"]
+
     @staticmethod
     @abstractmethod
-    def button_up(vk_code: int):
+    def press_button(button: _buttons, down: bool):
+        """
+        on most os the mouse buttons are "just" keys,
+        so you can press them with the keyboard class
+        """
         raise NotImplementedError
 
     @staticmethod
     @abstractmethod
-    def button_down(vk_code: int):
+    def is_pressed(button: _buttons):
         raise NotImplementedError

@@ -1,5 +1,4 @@
 import platform as _platform
-from typing import Literal
 
 from Mine.OsAbstractions.Abstract import AbsBackend
 

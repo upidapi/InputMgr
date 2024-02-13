@@ -9,8 +9,8 @@ from Mine.ViritallKeys.VkEnum import KeyData
 _backend_type = get_backend_type()
 
 _backend = get_backend()
-_keyboard = _backend.keyboard_controller
-_event_api = _backend.event_api
+_keyboard = _backend.Keyboard
+_event_api = _backend.EventApi
 _state_mgr = _backend.state_mgr
 
 ASSUME_NO_STATE_CHANGE = False
@@ -496,7 +496,7 @@ class Keyboard:
                 keys required to be pressed/unpressed to get a specific char
 
                 i.e.
-                type(Down(Vk.shift), "a") => "A"
+                type(Down(LinuxVk.shift), "a") => "A"
 
         Pressed(pressed, do)
             executes {do}

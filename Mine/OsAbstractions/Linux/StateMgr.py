@@ -2,7 +2,7 @@ import evdev
 
 from Mine.OsAbstractions.Abstract.Keyboard import InvalidKeyException
 from Mine.OsAbstractions.Abstract.StateMgr import AbsStateMgr
-from Mine.OsAbstractions.Linux.common import LinuxKeyData, LinuxLayout, LinuxKeyEnum
+from Mine.OsAbstractions.Linux.LinuxVk import LinuxKeyData, LinuxKeyEnum
 
 
 class LinuxStateMgr(AbsStateMgr):

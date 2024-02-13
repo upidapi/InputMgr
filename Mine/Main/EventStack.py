@@ -4,7 +4,7 @@ from typing import Callable
 from Mine.Events import KeyboardEvent, MouseEvent
 from Mine.OsAbstractions import get_backend
 
-_event_api = get_backend().event_api
+_event_api = get_backend().EventApi
 
 
 class EventStack:

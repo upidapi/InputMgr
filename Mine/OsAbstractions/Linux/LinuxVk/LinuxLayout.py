@@ -4,151 +4,7 @@ import os
 import re
 import subprocess
 
-# from evdev.ecodes import keys, KEY, SYN, REL, ABS, EV_KEY, EV_REL, EV_ABS, EV_SYN
-import evdev
-
-from Mine.OsAbstractions.Linux import xorg_keysyms
-from Mine.OsAbstractions.Linux.xorg_keysyms import unicode_char_to_name, name_to_symbolic_key
-from Mine.ViritallKeys.VkEnum import KeyData, VkEnum
-
-
-class LinuxKeyData(KeyData):
-    def __init__(self, x_name=None, **kwargs):
-        super().__init__(**kwargs)
-
-        # x_name doesn't seam to have any reason behind the name
-        # it looks like it's basically only an id / name tag
-        self.x_name = x_name
-        # self.kernel_name = kernel_name
-
-    def _calc_is_dead(self):
-        try:
-            name = unicode_char_to_name(self.combining)
-            symbolic_key = name_to_symbolic_key(name)
-
-            if symbolic_key:
-                return True
-            else:
-                return False
-        except KeyError:
-            pass
-
-
-def _k_from_name(x_name, kernel_name, **kwargs):
-    """Creates a key from a name.
-
-    :param str x_name: The X name.
-
-    :param str kernel_name: The kernel name.
-
-    :return: a key code
-    """
-    try:
-        vk = getattr(evdev.ecodes, kernel_name)
-    except AttributeError:
-        vk = None
-    return LinuxKeyData.from_vk(
-        vk,
-        x_name=x_name,
-        # kernel_name=kernel_name,
-        **kwargs,
-    )
-
-
-class LinuxKeyEnum(VkEnum, enum_item_type=LinuxKeyData):
-    # <editor-fold desc="Mouse">
-    mouse_left = _k_from_name('BTN_LEFT', 'BTN_LEFT')
-    mouse_middle = _k_from_name('BTN_MIDDLE', 'BTN_MIDDLE')
-    mouse_right = _k_from_name('BTN_RIGHT', 'BTN_RIGHT')
-
-    mouse_forward = _k_from_name('BTN_FORWARD', 'BTN_FORWARD')
-    mouse_back = _k_from_name('BTN_BACK', 'BTN_BACK')
-    # </editor-fold>
-
-    # <editor-fold desc="Modifiers">
-    alt = _k_from_name('Alt_L', 'KEY_LEFTALT')
-    alt_l = _k_from_name('Alt_L', 'KEY_LEFTALT')
-
-    # alt_r is just alt_gr
-    alt_r = _k_from_name('Alt_R', 'KEY_RIGHTALT')
-    alt_gr = _k_from_name('Mode_switch', 'KEY_RIGHTALT')
-
-    caps_lock = _k_from_name('Caps_Lock', 'KEY_CAPSLOCK')
-
-    # windows / command / super key
-    cmd = _k_from_name('Super_L', 'KEY_LEFTMETA')
-    cmd_l = _k_from_name('Super_L', 'KEY_LEFTMETA')
-    cmd_r = _k_from_name('Super_R', 'KEY_RIGHTMETA')
-
-    ctrl = _k_from_name('Control_L', 'KEY_LEFTCTRL')
-    ctrl_l = _k_from_name('Control_L', 'KEY_LEFTCTRL')
-    ctrl_r = _k_from_name('Control_R', 'KEY_RIGHTCTRL')
-
-    shift = _k_from_name('Shift_L', 'KEY_LEFTSHIFT')
-    shift_l = _k_from_name('Shift_L', 'KEY_LEFTSHIFT')
-    shift_r = _k_from_name('Shift_R', 'KEY_RIGHTSHIFT')
-    # </editor-fold>
-
-    backspace = _k_from_name('BackSpace', 'KEY_BACKSPACE')
-    delete = _k_from_name('Delete', 'KEY_DELETE')
-    enter = _k_from_name('Return', 'KEY_ENTER', char="\n")
-    space = _k_from_name('space', 'KEY_SPACE', char=' ')
-    tab = _k_from_name('Tab', 'KEY_TAB', char='\t')
-
-    f1 = _k_from_name('F1', 'KEY_F1')
-    f2 = _k_from_name('F2', 'KEY_F2')
-    f3 = _k_from_name('F3', 'KEY_F3')
-    f4 = _k_from_name('F4', 'KEY_F4')
-    f5 = _k_from_name('F5', 'KEY_F5')
-    f6 = _k_from_name('F6', 'KEY_F6')
-    f7 = _k_from_name('F7', 'KEY_F7')
-    f8 = _k_from_name('F8', 'KEY_F8')
-    f9 = _k_from_name('F9', 'KEY_F9')
-    f10 = _k_from_name('F10', 'KEY_F10')
-    f11 = _k_from_name('F11', 'KEY_F11')
-    f12 = _k_from_name('F12', 'KEY_F12')
-    f13 = _k_from_name('F13', 'KEY_F13')
-    f14 = _k_from_name('F14', 'KEY_F14')
-    f15 = _k_from_name('F15', 'KEY_F15')
-    f16 = _k_from_name('F16', 'KEY_F16')
-    f17 = _k_from_name('F17', 'KEY_F17')
-    f18 = _k_from_name('F18', 'KEY_F18')
-    f19 = _k_from_name('F19', 'KEY_F19')
-    f20 = _k_from_name('F20', 'KEY_F20')
-
-    esc = _k_from_name('Escape', 'KEY_ESC')
-    home = _k_from_name('Home', 'KEY_HOME')
-    end = _k_from_name('End', 'KEY_END')
-    page_down = _k_from_name('Page_Down', 'KEY_PAGEDOWN')
-    page_up = _k_from_name('Page_Up', 'KEY_PAGEUP')
-
-    insert = _k_from_name('Insert', 'KEY_INSERT')
-    menu = _k_from_name('Menu', 'KEY_MENU')
-    pause = _k_from_name('Pause', 'KEY_PAUSE')
-    print_screen = _k_from_name('Print', 'KEY_SYSRQ')
-    scroll_lock = _k_from_name('Scroll_Lock', 'KEY_SCROLLLOCK')
-
-    # arrow keys
-    up = _k_from_name('Up', 'KEY_UP')
-    down = _k_from_name('Down', 'KEY_DOWN')
-    left = _k_from_name('Left', 'KEY_LEFT')
-    right = _k_from_name('Right', 'KEY_RIGHT')
-
-    # <editor-fold desc="Media keys">
-    media_volume_mute = _k_from_name('Mute', 'KEY_MUTE')
-    media_volume_down = _k_from_name('LowerVolume', 'KEY_VOLUMEDOWN')
-    media_volume_up = _k_from_name('RaiseVolume', 'KEY_VOLUMEUP')
-
-    media_play_pause = _k_from_name('Play', 'KEY_PLAYPAUSE')
-    media_previous = _k_from_name('Prev', 'KEY_PREVIOUSSONG')
-    media_next = _k_from_name('Next', 'KEY_NEXTSONG')
-    # </editor-fold>
-
-    # <editor-fold desc="Numpad keys">
-    # todo add keypad/numpad keys
-    num_lock = _k_from_name('Num_Lock', 'KEY_NUMLOCK')
-    # </editor-fold>
-
+from Mine.OsAbstractions.Linux.LinuxVk import xorg_keysyms, LinuxKeyEnum, LinuxKeyData
 
 """
 
@@ -316,6 +172,7 @@ class LinuxLayout:
 
         :return: a key representation
         """
+        # this uses names to find the keys
         # First try special keys...
         for key in LinuxKeyEnum:
             key: LinuxKeyData
@@ -331,6 +188,7 @@ class LinuxLayout:
         if char:
             return LinuxKeyData.from_char(char, vk=vk)
 
+        # things with "incorrect" names
         mapped_name = {
                 'one': '1',
                 'two': '2',
@@ -358,22 +216,23 @@ class LinuxLayout:
         For simplicity, we call out to the ``dumpkeys`` binary. In the future,
         we may want to implement this ourselves.
         """
-        # for debug when you don't have root
-        data_path = os.path.join(
-            os.path.dirname(__file__),
-            "ExampleData.txt"
-        )
-        with open(data_path) as f:
-            raw_data = f.read()
+        if __debug__:
+            # for debug when you don't have root
+            data_path = os.path.join(
+                os.path.dirname(__file__),
+                "ExampleLayoutData.txt"
+            )
 
-        # raw_data = subprocess.check_output(
-        #     ['dumpkeys', '--full-table', '--keys-only']
-        # ).decode('utf-8')
+            with open(data_path) as f:
+                raw_data = f.read()
+        else:
+            raw_data = subprocess.check_output(
+                ['dumpkeys', '--full-table', '--keys-only']
+            ).decode('utf-8')
 
         key_data = cls.KEYCODE_RE.findall(raw_data)
 
         for keycode, names in key_data[::-1]:
-
             vk = int(keycode)
             keys = tuple(
                 cls._parse_raw_key(vk, name)

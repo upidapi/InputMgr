@@ -1,6 +1,6 @@
 from Mine.OsAbstractions import get_backend
 
-_mouse = get_backend().mouse_controller
+_mouse = get_backend().Mouse
 
 
 class Mouse:

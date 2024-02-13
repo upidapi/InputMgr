@@ -82,7 +82,7 @@ def print_event(
 
         if isinstance(event, MouseEvent.Scroll):
             if mouse_scroll:
-                print(f"{padded_event}{event.pos} {event.direction}")
+                print(f"{padded_event}{event.pos} {event.dy=} {event.dx=}")
             return
 
         if isinstance(event, MouseEvent.Click | MouseEvent.UnClick):

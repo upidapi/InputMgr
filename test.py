@@ -1,49 +1,29 @@
-# import time
-#
-import time
+from Mine.OsAbstractions.Linux.common import LinuxKeyEnum
 
-from Mine.Main.Keyboard import Keyboard
-from Mine.Main.EventStack import print_events
-from Mine.OsAbstractions.Linux.xorg_keysyms import unicode_char_to_name, name_to_symbolic_key
+testing = "print"
 
-# print_events()
+if testing == "type":
+    import time
+    from Mine.Main.Keyboard import Keyboard
 
-# start = time.time_ns()
+    print("2 sec")
+    time.sleep(2)
 
-# key = _keyboard.get_key_data_from_char(char)
-# vk, need_pressed, need_unpressed = _keyboard.calc_buttons_for_key(key)
+    # Keyboard.type(2, 3, "1¨^¨~1aASẼ")
+    Keyboard.type(LinuxKeyEnum.f1)
 
+elif testing == "print":
+    from Mine.Main.EventStack import print_events
 
-# sd = Keyboard._compile_to_state_data("HELLO this IS @upidapi")
-# print(sd)
-# seq = Keyboard._state_to_press_seq(*sd)
-# print(seq)
+    print_events()
 
-print("2 sec")
-time.sleep(2)
+elif testing == "init":
+    import cProfile
+    cProfile.run(
+        """from Mine.Main.Keyboard import Keyboard""",
+        "stats"
+    )
+    import pstats
 
-Keyboard.type("1¨^¨~1")
-
-
-# import unicodedata
-#
-#
-# for char in "aA3#£^¨":
-#     try:
-#         x = unicodedata.lookup(
-#             'COMBINING ' + unicodedata.name(char)
-#         )
-#         print()
-#         print(char, x, hex(ord(x)))
-#
-#         name = unicode_char_to_name(x)
-#
-#         print(f"{char} {x} {name}")
-#
-#         symbolic_key = name_to_symbolic_key(name)
-#
-#         print(f"{char} {x} {symbolic_key}")
-#
-#     except KeyError:
-#         # not dead key
-#         print("not", char)
+    p = pstats.Stats('restats')
+    p.sort_stats("time").print_stats()

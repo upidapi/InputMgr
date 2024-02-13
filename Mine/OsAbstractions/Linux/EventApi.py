@@ -191,12 +191,12 @@ class LinuxEventApi(EventApi):
 
         if isinstance(dc, KeyboardEvent.KeyDown):
             return (
-                KeyboardEvent.KeyDown(*args),
-                KeyboardEvent.KeySend(*args),
+                KeyboardEvent.KeyDown(**args),
+                KeyboardEvent.KeySend(**args),
             )
 
         return (
-            dc(*args),
+            dc(**args),
         )
 
     # todo get initial pos
@@ -230,12 +230,12 @@ class LinuxEventApi(EventApi):
             cls._mouse_pos[1] + dy,
         )
 
-        return MouseEvent.Move(
+        return (MouseEvent.Move(
             time_ms=event.time_ms,
             raw=event,
             pos=cls._mouse_pos,
             delta=(dx, dy)
-        )
+        ), )
 
     @classmethod
     def _convert_scroll_event(cls, event: LinuxInputEvent) \
@@ -258,6 +258,7 @@ class LinuxEventApi(EventApi):
                 raw=event,
                 pos=cls._mouse_pos,
                 dy=-event.value,
+                dx=0  # no current support for sideways scroll
             ), )
 
     @classmethod

@@ -1,5 +1,5 @@
+from Mine.AbsVkEnum import KeyData
 from Mine.OsAbstractions.Linux.LinuxVk.xorg_keysyms import unicode_char_to_name, name_to_symbolic_key
-from Mine.ViritallKeys.VkEnum import KeyData
 
 
 class LinuxKeyData(KeyData):

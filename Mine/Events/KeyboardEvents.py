@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
+from Mine.AbsVkEnum import KeyData
 from Mine.Events._BaseEvent import _BaseEvent
-from Mine.ViritallKeys.VkEnum import KeyData
 
 
 # _key_states = {}

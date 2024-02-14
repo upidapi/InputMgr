@@ -1,7 +1,7 @@
 import evdev
 
+from Mine.AbsVkEnum import VkEnum
 from Mine.OsAbstractions.Linux.LinuxVk import LinuxKeyData
-from Mine.ViritallKeys.VkEnum import VkEnum
 
 
 def _k_from_name(kernel_name, x_name=None, **kwargs):
@@ -272,7 +272,7 @@ _linux_enum_text_data = """
 def _helper():
     out = []
 
-    for full_line in x.split("\n    "):
+    for full_line in _linux_enum_text_data.split("\n    "):
         line = full_line.strip()  # remove tab
 
         # line = repr(line)[1:-1].replace("//", "/")

@@ -1,5 +1,5 @@
+from Mine.AbsVkEnum import KeyData
 from Mine.OsAbstractions.Abstract import AbsKeyboard
-from Mine.ViritallKeys.VkEnum import KeyData
 
 
 class WindowsKeyboard(AbsKeyboard):
@@ -7,8 +7,8 @@ class WindowsKeyboard(AbsKeyboard):
     def press(vk_code: int, down: bool) -> None:
         raise NotImplementedError
 
-    @staticmethod
-    def update_mapping() -> None:
+    @classmethod
+    def update_mapping(cls) -> None:
         raise NotImplementedError
 
     @staticmethod

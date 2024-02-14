@@ -2,7 +2,7 @@
 from abc import ABC, abstractmethod
 from typing import Self
 
-from Mine.ViritallKeys.VkEnum import KeyData
+from Mine.AbsVkEnum import KeyData
 
 
 class InvalidKeyException(Exception):

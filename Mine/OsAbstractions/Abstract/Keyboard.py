@@ -55,10 +55,15 @@ class StateData:
 
 
 class AbsKeyboard(ABC):
-    # @classmethod
-    # @abstractmethod
-    # def is_pressed(cls, vk_code: int) -> bool:
-    #     raise NotImplementedError
+    @classmethod
+    @abstractmethod
+    def get_pressed_keys(cls) -> set[KeyData]:
+        raise NotImplementedError
+
+    @classmethod
+    @abstractmethod
+    def key_pressed(cls, key: KeyData) -> bool:
+        raise NotImplementedError
 
     @classmethod
     @abstractmethod

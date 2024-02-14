@@ -11,7 +11,6 @@ _backend_type = get_backend_type()
 _backend = get_backend()
 _keyboard = _backend.Keyboard
 _event_api = _backend.EventApi
-_state_mgr = _backend.state_mgr
 
 ASSUME_NO_STATE_CHANGE = False
 
@@ -90,68 +89,6 @@ class Keyboard:
     def _get_seq_class(cls, down):
         return _Down if down else _Up
 
-    # @classmethod
-    # def _buttons_for_key(cls, key: KeyData):
-    #     # pressed_keys = _state_mgr.get_pressed_keys()
-    #     vk, need_pressed, need_unpressed = _keyboard.calc_buttons_for_key(key)
-    #
-    #     # assume that no events are sent between now and the last
-    #     # event fetch
-    #     # if an event did occur then there's a chance that the
-    #     # mod key state changed which could lead to incorrect chars
-    #     # being pressed
-    #     if ASSUME_NO_STATE_CHANGE:
-    #         to_press = need_pressed - pressed_keys
-    #         to_un_press = pressed_keys & need_unpressed
-    #     else:
-    #         to_press = need_pressed
-    #         to_un_press = need_unpressed
-    #
-    #
-    #
-    #     # setup: set[(int, bool)] = set(
-    #     #     (key, True)
-    #     #     for key in to_press
-    #     # ) | set(
-    #     #     (key, False)
-    #     #     for key in to_un_press
-    #     # )
-    #     #
-    #     # cleanup: set[(int, bool)] = set(
-    #     #     (key_vk, not pressed) for key_vk, pressed in setup
-    #     # )
-    #     #
-    #     # cleanup: set[(int, bool)] = set(
-    #     #     (key, False)
-    #     #     for key in need_pressed - pressed_keys
-    #     # ) | set(
-    #     #     (key, True)
-    #     #     for key in need_unpressed & pressed_keys
-    #     # )
-    #
-    #     return setup, vk, cleanup
-
-    # @classmethod
-    # def _key_data_to_press_seq(cls, key: KeyData) -> (press_seq_type, ):
-    #     setup, vk, cleanup = cls._buttons_for_key(key)
-    #
-    #     out: [_Up, _Down, int] = []
-    #     for vk, press in setup:
-    #         # this could theoretically block the wrong event since
-    #         # we only get the vk
-    #         out.append(
-    #             cls._get_seq_class(press)(vk)
-    #         )
-    #
-    #     out.append(vk)
-    #
-    #     for vk, press in cleanup:
-    #         out.append(
-    #             cls._get_seq_class(press)(vk)
-    #         )
-    #
-    #     return tuple(out)
-
     @classmethod
     def _exec_press_seq(cls, press_seq: press_seq_type):
         for thing in press_seq:
@@ -172,110 +109,6 @@ class Keyboard:
 
         _keyboard.send_queued_presses()
 
-    # @classmethod
-    # def _minify_press_seq(
-    #         cls,
-    #         press_seq: press_seq_type
-    # ) -> press_seq_type:
-    #     """
-    #     prevents excessive (and unnecessary) modifier presses
-    #     so
-    #         _minify_press_seq(
-    #             _Down(5), 10, _Up(5), _Down(5), 12, _Up(5), _Down(5), 11, _Up(5)
-    #         ) == (_Down(5), 10, 12, 11, _Up(5))
-    #
-    #     if a _Up or _Down instance is marked as no_optimise
-    #         then it won't be collapsed
-    #     """
-    #     down = set()
-    #     up = set()
-    #
-    #     # full_seq = [j for i in press_seq for j in i]
-    #
-    #     out = []
-    #     for thing in press_seq:
-    #         if isinstance(thing, int) or \
-    #                 isinstance(thing, _Down | _Up) and thing.no_optimise:
-    #             if down - up:
-    #                 out.append(_Down(*(down - up)))
-    #
-    #             if up - down:
-    #                 out.append(_Up(*(up - down)))
-    #
-    #             out.append(thing)
-    #             # if isinstance(thing, int):
-    #             # elif isinstance(thing, _Down):
-    #             #     out.append(_Down)
-    #
-    #             down = set()
-    #             up = set()
-    #
-    #         elif isinstance(thing, _Down):
-    #             down.update(thing.vks)
-    #
-    #         elif isinstance(thing, _Up):
-    #             up.update(thing.vks)
-    #
-    #         else:
-    #             raise TypeError(f"invalid press seq type {type(thing)=} {thing=} {press_seq=}")
-    #
-    #     if down:
-    #         out.append(_Down(*down))
-    #
-    #     if up:
-    #         out.append(_Down(*down))
-    #         out.append(_Up(*up))
-    #
-    #     out += [
-    #         _Down(*down),
-    #         _Up(*up)
-    #     ]
-    #
-    #     return out
-
-    # @classmethod
-    # def _to_press_seq(cls, *inp: all_conv_from_types) -> press_seq_type:
-    #     out = []
-    #
-    #     for part in inp:
-    #         if isinstance(part, KeyData):
-    #             out.append(part.vk)
-    #         elif isinstance(part, str):
-    #             for char in part:
-    #                 out += cls._key_data_to_press_seq(
-    #                     _keyboard.get_key_data_from_char(char)
-    #                 )
-    #
-    #         elif isinstance(part, int):
-    #             out.append(
-    #                 _keyboard.get_key_data_from_vk(
-    #                     part
-    #                 )
-    #             )
-    #         elif isinstance(part, Pressed):
-    #             out += cls._to_press_seq(Down(part.pressed))
-    #             out.append(cls._to_press_seq(part.do))
-    #             out += cls._to_press_seq(Up(part.pressed[::-1]))
-    #
-    #         elif isinstance(part, Up):
-    #             for data in part.data:
-    #                 out += [
-    #                     _Up(instruction, no_optimise=True)
-    #                     if isinstance(instruction, int) else instruction
-    #                     for instruction in cls._to_press_seq(data)
-    #                 ]
-    #         elif isinstance(part, Down):
-    #             for data in part.data:
-    #                 out += [
-    #                     _Down(instruction, no_optimise=True)
-    #                     if isinstance(instruction, int) else instruction
-    #                     for instruction in cls._to_press_seq(data)
-    #                 ]
-    #         else:
-    #             raise TypeError(f"invalid type in the seq {type(part)=} {part=}")
-    #
-    #     return tuple(out)
-
     @classmethod
     def _state_part_to_press_seq(
             cls,
@@ -285,7 +118,7 @@ class Keyboard:
 
         out: list[_Up | _Down | int] = []
 
-        last_pressed = cur_pressed or _state_mgr.get_pressed_keys()
+        last_pressed = cur_pressed or _keyboard.get_pressed_keys()
 
         for state in state_data:
             out += [
@@ -308,7 +141,7 @@ class Keyboard:
             # but we have to remember that we didn't un press them
             last_pressed = {*state.need_pressed, *not_unpressed}
 
-        need_pressed = cur_pressed or _state_mgr.get_pressed_keys()
+        need_pressed = cur_pressed or _keyboard.get_pressed_keys()
 
         out += [
             _Down(*(need_pressed - last_pressed)),
@@ -533,3 +366,7 @@ class Keyboard:
 
         literal_inp = cls._remove_modifiers(*inp)
         cls.type(literal_inp)
+
+    @classmethod
+    def is_pressed(cls, key: KeyData):
+        return _keyboard.key_pressed(key)

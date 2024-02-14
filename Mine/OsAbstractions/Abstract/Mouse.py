@@ -17,15 +17,14 @@ class AbsMouse(ABC):
 
     @staticmethod
     @abstractmethod
-    def scroll(dx: float, dy: float):
-        # might be int, int and not float, float
+    def scroll(dx: int, dy: int):
         raise NotImplementedError
 
-    _buttons = Literal["left", "middle", "right", "forward", "back"]
+    buttons = Literal["left", "middle", "right"]
 
     @staticmethod
     @abstractmethod
-    def press_button(button: _buttons, down: bool):
+    def press_button(button: buttons, down: bool):
         """
         on most os the mouse buttons are "just" keys,
         so you can press them with the keyboard class
@@ -34,5 +33,5 @@ class AbsMouse(ABC):
 
     @staticmethod
     @abstractmethod
-    def is_pressed(button: _buttons):
+    def is_pressed(button: buttons):
         raise NotImplementedError

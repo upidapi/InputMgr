@@ -3,10 +3,28 @@ import evdev
 from Mine.OsAbstractions.Abstract import AbsKeyboard
 from Mine.OsAbstractions.Abstract.Keyboard import InvalidKeyException, StateData
 from Mine.OsAbstractions.Linux.LinuxVk import LinuxKeyData, LinuxLayout, LinuxKeyEnum
-from Mine.OsAbstractions.Linux.StateMgr import LinuxStateMgr
+from Mine.OsAbstractions.Linux.LinuxVk.LinuxKeyEnum import LINUX_MODIFIER_MAP
 
 
 class LinuxKeyboard(AbsKeyboard):
+    _pressed_keys = set()
+
+    @classmethod
+    def get_pressed_keys(cls) -> set[LinuxKeyData]:
+        return cls._pressed_keys
+
+    @classmethod
+    def key_pressed(cls, key: LinuxKeyData) -> bool:
+        return key in cls._pressed_keys
+
+    @classmethod
+    def add_pressed_keys(cls, *keys: LinuxKeyData):
+        cls._pressed_keys.update(keys)
+
+    @classmethod
+    def remove_pressed_keys(cls, *keys: LinuxKeyData):
+        cls._pressed_keys -= set(keys)
+
     _dev = evdev.UInput()
 
     @classmethod
@@ -69,7 +87,7 @@ class LinuxKeyboard(AbsKeyboard):
 
         # todo possibly move this to StateMgr
         rev_multidict: dict[int, set[int]] = {}
-        for key, value in LinuxStateMgr.MODIFIER_MAP.items():
+        for key, value in LINUX_MODIFIER_MAP.items():
             if value.vk in rev_multidict.keys():
                 rev_multidict[value.vk].add(key.vk)
             else:

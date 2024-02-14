@@ -1,23 +1,38 @@
 from Mine.OsAbstractions import get_backend
+from Mine.OsAbstractions.Abstract import AbsMouse
 
 _mouse = get_backend().Mouse
 
 
 class Mouse:
-    @classmethod
-    def move(cls, dx, dy):
+    @staticmethod
+    def move(dx, dy):
         """ move the mouse relative to its current pos """
         cx, cy = _mouse.get_pos()
         _mouse.set_pos(cx + dx, cy + dy)
 
-    @classmethod
-    def set_pos(cls, x, y):
+    @staticmethod
+    def set_pos(x, y):
         """ move the mouse relative to its current pos """
         _mouse.set_pos(x, y)
 
-    @classmethod
-    def get_pos(cls):
+    @staticmethod
+    def get_pos():
         """ move the mouse relative to its current pos """
         return _mouse.get_pos()
 
-    # todo fully implement this
+    @staticmethod
+    def scroll(dx: int, dy: int):
+        return _mouse.scroll(dx, dy)
+
+    @staticmethod
+    def press_button(button: AbsMouse.buttons, down: bool):
+        """
+        on most os the mouse buttons are "just" keys,
+        so you can press them with the keyboard class
+        """
+        return _mouse.press_button(button, down)
+
+    @staticmethod
+    def is_pressed(button: AbsMouse.buttons):
+        return _mouse.is_pressed(button)

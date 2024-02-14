@@ -139,7 +139,22 @@ class LinuxKeyEnum(VkEnum, enum_item_type=LinuxKeyData):
     # </editor-fold>
 
 
-x = """    
+LINUX_MODIFIER_MAP: dict[LinuxKeyData, LinuxKeyData] = {
+    LinuxKeyEnum.alt: LinuxKeyEnum.alt,
+    LinuxKeyEnum.alt_l: LinuxKeyEnum.alt,
+
+    LinuxKeyEnum.alt_gr: LinuxKeyEnum.alt_gr,
+
+    LinuxKeyEnum.shift: LinuxKeyEnum.shift,
+    LinuxKeyEnum.shift_l: LinuxKeyEnum.shift,
+    LinuxKeyEnum.shift_r: LinuxKeyEnum.shift,
+
+    # todo add more modifiers
+    LinuxKeyEnum.ctrl: LinuxKeyEnum.ctrl,
+}
+
+
+_linux_enum_text_data = """    
     # <editor-fold desc="Mouse">
     mouse_left = _k_from_name("BTN_LEFT")
     mouse_middle = _k_from_name("BTN_MIDDLE")

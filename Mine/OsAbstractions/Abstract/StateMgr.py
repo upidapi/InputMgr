@@ -1,17 +1,20 @@
 from Mine.ViritallKeys.VkEnum import KeyData
+from abc import ABC, abstractmethod
 
 
-class AbsStateMgr:
-    _pressed_keys = set()
-
+class AbsStateMgr(ABC):
     @classmethod
+    @abstractmethod
     def get_pressed_keys(cls) -> set[KeyData]:
-        return cls._pressed_keys
+        """
+        gets the currently pressed keys
+
+        this should include mouse buttons
+        """
 
     @classmethod
-    def press_keys(cls, *keys: KeyData):
-        cls._pressed_keys.update(keys)
-
-    @classmethod
-    def un_press_keys(cls, *keys: KeyData):
-        cls._pressed_keys -= set(keys)
+    @abstractmethod
+    def get_mouse_pos(cls) -> tuple[int, int]:
+        """
+        gets the current mouse pos
+        """

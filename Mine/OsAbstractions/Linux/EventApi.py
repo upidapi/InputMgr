@@ -4,8 +4,10 @@ import evdev
 
 from Mine.Events import KeyboardEvent, any_event, MouseEvent
 from Mine.OsAbstractions.Abstract import EventApi
+from Mine.OsAbstractions.Linux import LinuxKeyboard
 from Mine.OsAbstractions.Linux.LinuxVk import LinuxKeyData, LinuxKeyEnum, LinuxLayout
-from Mine.OsAbstractions.Linux.StateMgr import LinuxStateMgr
+from Mine.OsAbstractions.Linux.LinuxVk.LinuxKeyEnum import LINUX_MODIFIER_MAP
+from Mine.OsAbstractions.Linux.Mouse import LinuxMouse
 
 DEVICE_PATHS = []
 SUPPRESS = False
@@ -82,24 +84,6 @@ class LinuxEventApi(EventApi):
         for device in cls._devices.values():
             device.close()
 
-    # @classmethod
-    # def get_pressed_keys(cls):
-    #     return cls._pressed_keys
-
-    @classmethod
-    def _get_pressed_modifier_keys(cls):
-        """
-        gets a set of all active modifier keys
-
-        if none of these keys are pressed then
-        """
-        modifier_keys = set()
-        for key in LinuxStateMgr.get_pressed_keys():
-            if key in LinuxStateMgr.MODIFIER_MAP:
-                modifier_keys.add(key)
-
-        return modifier_keys
-
     @classmethod
     def _get_active_modifiers(cls) -> set[LinuxKeyData]:
         """
@@ -112,11 +96,11 @@ class LinuxEventApi(EventApi):
         # todo probably move this to the "LinuxLayout" or "LinuxStateMgr"
 
         modifier_keys: set[LinuxKeyData | None] = {None}
-        for key in LinuxStateMgr.get_pressed_keys():
+        for key in LinuxKeyboard.get_pressed_keys():
             key: LinuxKeyData
 
             modifier_keys.add(
-                LinuxStateMgr.MODIFIER_MAP.get(
+                LINUX_MODIFIER_MAP.get(
                     key, None
                 )
             )
@@ -132,9 +116,9 @@ class LinuxEventApi(EventApi):
         )
 
         if is_press:
-            LinuxStateMgr.press_keys(event_code)
+            LinuxKeyboard.add_pressed_keys(event_code)
         else:
-            LinuxStateMgr.un_press_keys(event_code)
+            LinuxKeyboard.remove_pressed_keys(event_code)
 
     @classmethod
     def _convert_raw_keyboard_event(cls, event: LinuxInputEvent) \
@@ -199,13 +183,6 @@ class LinuxEventApi(EventApi):
             dc(**args),
         )
 
-    # todo get initial pos
-    # todo get the actual pos
-    #   the pos isn't exposed to evdev, since its too low level
-    #   so we have to get it another way, for example xlib
-    # x, y
-    _mouse_pos = (0, 0)
-
     @classmethod
     def _convert_mouse_move_event(cls, event: LinuxInputEvent) \
             -> tuple[MouseEvent.event_types, ...]:
@@ -225,15 +202,10 @@ class LinuxEventApi(EventApi):
             # val > 0: move down
             dy = event.value
 
-        cls._mouse_pos = (
-            cls._mouse_pos[0] + dx,
-            cls._mouse_pos[1] + dy,
-        )
-
         return (MouseEvent.Move(
             time_ms=event.time_ms,
             raw=event,
-            pos=cls._mouse_pos,
+            pos=LinuxMouse.get_pos(),
             delta=(dx, dy)
         ), )
 
@@ -256,7 +228,7 @@ class LinuxEventApi(EventApi):
             return (MouseEvent.Scroll(
                 time_ms=event.time_ms,
                 raw=event,
-                pos=cls._mouse_pos,
+                pos=LinuxMouse.get_pos(),
                 dy=-event.value,
                 dx=0  # no current support for sideways scroll
             ), )

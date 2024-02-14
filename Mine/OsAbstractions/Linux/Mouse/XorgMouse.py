@@ -41,6 +41,7 @@ def display_manager(display):
         yield display
         display.sync()
     finally:
+        # todo probably change to "display.set_error_handler(None)"
         display.set_error_handler(old_handler)
     if errors:
         raise X11Error(errors)

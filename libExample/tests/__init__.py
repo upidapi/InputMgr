@@ -191,7 +191,7 @@ class EventTest(unittest.TestCase):
         with listener:
             for _ in range(10):
                 time.sleep(self.STOP_MAX_WAIT * 0.1)
-                if not listener.running:
+                if not listener._running:
                     success = True
                     break
 

@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import time
 from typing import Callable
 
@@ -9,11 +10,11 @@ from src.OsAbstractions.Abstract.Keyboard import Up, Down
 _event_api = get_backend().EventApi
 
 
-class EventStack:
-    running = False
+class EventDistributor:
+    running_sub_stacks = set()
 
     @classmethod
-    async def get_conveyor(cls):
+    async def run_event_distributor(cls):
         """
         Gets the next event, forever. If there's no events queued. Then it
         waits for an event before yielding.
@@ -26,29 +27,29 @@ class EventStack:
                 event.print_event()
         """
 
-        if cls.running:
+        if cls.running_sub_stacks:
             raise TypeError("event conveyor already running cant start it again")
 
         cls.running = True
 
+        # some added safety for debugging
         try:
             _event_api.start_listening()
 
             print("started")
 
             while True:
-                while True:
-                    if not cls.running:
-                        raise StopIteration
+                if not cls.running_sub_stacks:
+                    _event_api.stop_listening()
 
-                    if _event_api.event_queue:
-                        break
+                for es in cls.running_sub_stacks:
+                    es._queued_events += _event_api.event_queue
+                    _event_api.event_queue = []
 
-                    _event_api.fetch_new_events()
+                _event_api.fetch_new_events()
 
-                    await asyncio.sleep(0.001)
+                await asyncio.sleep(0.001)
 
-                yield _event_api.event_queue.pop(0)
         except BaseException as e:
             print("stopping")
 
@@ -60,16 +61,42 @@ class EventStack:
     # add a sub event stack that isn't a singleton
 
     @classmethod
-    def stop_conveyor(cls):
-        if not cls.running:
-            raise TypeError("event conveyor is stopped cant stop it again")
+    def add_sub_stack(cls, sub_stack):
+        need_start = not cls.running_sub_stacks
 
-        cls.running = False
+        cls.running_sub_stacks.add(sub_stack)
 
+        if need_start:
+            cls.run_event_distributor()
 
-class EventHandler:
     @classmethod
-    def get_conveyor(cls, break_cond: Callable[[], bool] = lambda: False):
+    def remove_sub_stack(cls, sub_stack):
+        cls.running_sub_stacks.remove(sub_stack)
+
+
+class EventStack:
+    def __init__(self):
+        self._in_with = False
+        self._running = False
+        self._queued_events = []
+
+    def __enter__(self):
+        self._in_with = True
+
+        EventDistributor.add_sub_stack(self)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._in_with = False
+
+        if exc_type is None:
+            EventDistributor.remove_sub_stack(self)
+            return
+
+        _event_api.stop_listening()
+        raise exc_type(exc_val)
+
+    async def __aiter__(self):
         """
         Gets the next event, forever. If there's no events queued. Then it
         waits for an event before yielding.
@@ -80,31 +107,42 @@ class EventHandler:
         for event in EventHandler.get_conveyor():
             if isinstance(event, KeyboardEvent.KeyDown):
                 event.print_event()
+
+        btw don't use break to exit the loop
+        you need to use self.stop_conveyor() to stop the loop
         """
-        try:
-            _event_api.start_listening()
 
-            print("started")
+        if not self._in_with:
+            raise TypeError("not in protective with statement")
 
+        if self._running:
+            raise TypeError("event conveyor already running cant start it again")
+
+        self._running = True
+
+        while True:
             while True:
-                while True:
-                    if break_cond():
-                        raise StopIteration
+                if self._queued_events:
+                    break
 
-                    if _event_api.event_queue:
-                        break
+                await asyncio.sleep(0.001)
 
-                    _event_api.fetch_new_events()
+            yield self._queued_events.pop(0)
 
-                    time.sleep(0.001)
+    # add a with poling rate
 
-                yield _event_api.event_queue.pop(0)
-        except BaseException as e:
-            print("stopping")
+    # add a sub event stack that isn't a singleton
+    def stop(self):
+        self._running = False
 
-            _event_api.stop_listening()
-            raise e
+    # @classmethod
+    # def add_handler(cls, handler):
+    #     with cls() as es:
+    #         async for event in es:
+    #             handler(event)
 
+
+class EventHandler:
     @classmethod
     def print_event(
             cls,
@@ -151,27 +189,29 @@ class EventHandler:
 
     @classmethod
     def print_events(cls):
-        for event in cls.get_conveyor():
-            cls.print_event(event)
+        with EventStack() as es:
+            async for event in es:
+                cls.print_event(event)
 
     @classmethod
     def wait_for_text_typed(cls, text):
         cur_progress = 0
-        for event in cls.get_conveyor():
-            if not isinstance(event, KeyboardEvent.KeySend):
-                continue
 
-            for char in event.chars:
-                if text[cur_progress] != char:
-                    cur_progress = 0
+        with EventStack() as es:
+            async for event in es:
+
+                if not isinstance(event, KeyboardEvent.KeySend):
                     continue
 
-                cur_progress += 1
+                for char in event.chars:
+                    if text[cur_progress] != char:
+                        cur_progress = 0
+                        continue
 
-                if cur_progress == len(text):
-                    return
+                    cur_progress += 1
 
-    # todo switch to a async event stack
+                    if cur_progress == len(text):
+                        return
 
 
 class Recorder:
@@ -180,22 +220,37 @@ class Recorder:
     """
 
     # int corresponds to seconds sleep
-    data: list[Up | Down, int] = []
+    data: list[Up | Down | int] = []
+
+    es: EventStack | None = None
+
+    @classmethod
+    def _handle_event(cls, event):
+        if not isinstance(event, KeyboardEvent.KeyDown | KeyboardEvent.KeyUp):
+            return
+
+        dc = Up if KeyboardEvent.KeyUp else Down
+
+        cls.data.append(
+            dc(
+                event.key_data.vk
+            )
+        )
 
     @classmethod
     async def start(cls):
-        async for event in EventStack.get_conveyor():
-            if not isinstance(event, KeyboardEvent.KeyDown | KeyboardEvent.KeyUp):
-                continue
-
-            dc = Up if KeyboardEvent.KeyUp else Down
-
-            cls.data.append(
-                dc(
-                    event.key_data.vk
-                )
-            )
+        with EventStack() as es:
+            cls.es = es
+            async for event in es:
+                cls._handle_event(event)
 
     @classmethod
     def stop(cls):
-        EventStack.stop_conveyor()
+        if cls.es is None:
+            raise TypeError("cant stop it since recorder not running")
+
+        cls.es.stop()
+
+        data = cls.data
+        cls.data = []
+        return data

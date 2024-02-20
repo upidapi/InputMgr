@@ -1,29 +1,38 @@
-from Mine.OsAbstractions.Linux.common import LinuxKeyEnum
+import unicodedata as ud
 
-testing = "print"
 
-if testing == "type":
-    import time
-    from Mine.Main.Keyboard import Keyboard
+# chars = "^¨~`aâ'a1.:aͣͣ"
+# # chars = "â"
+# for char in chars:
+#     name = unicodedata.name(char)
+#     group = unicodedata.category(char)
+#
+#     try:
+#         comb = unicodedata.lookup(f"COMBINING {name}")
+#         c_group = unicodedata.category(comb)
+#     except KeyError:
+#         comb = None
+#         c_group = None
+#
+#     # https://www.compart.com/en/unicode/category
+#     # Mark, nonspacing
+#
+#     # Sk => Modifier symbol
+#     print(f"\"{char}\" {name:<40} {group} \" {comb}\" {c_group}")
 
-    print("2 sec")
-    time.sleep(2)
+o1 = 'ö'  # '\xf6'
+o2 = 'ö'  # 'o\u0308'
 
-    # Keyboard.type(2, 3, "1¨^¨~1aASẼ")
-    Keyboard.type(LinuxKeyEnum.f1)
+combining_a = ud.lookup(f"COMBINING {ud.name("^")}")
+wierd_a = " " + combining_a
 
-elif testing == "print":
-    from Mine.Main.EventStack import print_events
 
-    print_events()
+def print_uc(chars: str):
+    for char in chars:
+        print(f'U+{ord(char):04X} {ud.name(char)}')
+    print()
 
-elif testing == "init":
-    import cProfile
-    cProfile.run(
-        """from Mine.Main.Keyboard import Keyboard""",
-        "stats"
-    )
-    import pstats
 
-    p = pstats.Stats('restats')
-    p.sort_stats("time").print_stats()
+print_uc(wierd_a)
+print_uc(ud.normalize('NFC', wierd_a))
+print_uc(ud.normalize('NFD', wierd_a))

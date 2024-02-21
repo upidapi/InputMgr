@@ -86,6 +86,7 @@ class _TypeWriter:
                 time.time_ns() / 10 ** 6,
                 "synthetic event",
                 key,
+                key.char or ""
             )
         )
 
@@ -99,7 +100,7 @@ class _TypeWriter:
         return _Down if down else _Up
 
     @classmethod
-    def _exec_press_seq(cls, press_seq: press_seq_type):
+    def _exec_press_seq(cls, press_seq: press_seq_type, delta_press: int | None):
         for thing in press_seq:
             if isinstance(thing, int):
                 cls._queue_vk_press(thing, True)
@@ -116,12 +117,17 @@ class _TypeWriter:
             else:
                 raise TypeError(f"invalid press seq type {thing}")
 
-        _keyboard.send_queued_presses()
+            if delta_press is not None:
+                _keyboard.send_queued_presses()
+                time.sleep(delta_press)
+
+        if delta_press is None:
+            _keyboard.send_queued_presses()
 
     @classmethod
     def _state_part_to_press_seq(
             cls,
-            *state_data: _StateData,
+            *state_datas: _StateData,
             cur_pressed=None
     ) -> list[_Up | _Down | int]:
 
@@ -129,7 +135,7 @@ class _TypeWriter:
 
         last_pressed = cur_pressed or _keyboard.get_pressed_keys()
 
-        for state in state_data:
+        for state in state_datas:
             out += [
                 _Up(*((last_pressed - state.need_pressed) & state.need_unpressed)),
                 _Down(*(state.need_pressed - last_pressed)),
@@ -274,6 +280,13 @@ class _TypeWriter:
                 ]
 
             elif isinstance(part, StateData):
+                if any(not isinstance(x, int) for x in {*part.need_pressed, *part.need_unpressed}):
+                    raise TypeError(
+                        "the need_pressed and need_unpressed has to consist of only int(s)\n"
+                        f"{part.need_pressed=}\n"
+                        f"{part.need_unpressed=}\n"
+                    )
+
                 out.append(
                     _StateData(
                         do=cls._compile_to_state_data(*part.do),
@@ -319,7 +332,7 @@ class _TypeWriter:
     # todo handle caps-lock
 
     @classmethod
-    def type(cls, *inp: all_conv_from_types):
+    def type(cls, *inp: all_conv_from_types, delta_press=None):
         """
         types a sequence of things
 
@@ -370,7 +383,7 @@ class _TypeWriter:
         """
         state_seq = cls._compile_to_state_data(*inp)
         press_seq = cls._state_to_press_seq(*state_seq)
-        cls._exec_press_seq(press_seq)
+        cls._exec_press_seq(press_seq, delta_press)
 
 
 typewrite = _TypeWriter.type

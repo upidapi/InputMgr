@@ -1,9 +1,8 @@
 from src.Main.EventHandler import EventQueue
 
-from src.Main.Keyboard import TextTyper
 from src.Main.Mouse import Mouse
 
-from Events import MouseEvent, KeyboardEvent
+from src.Events import MouseEvent, KeyboardEvent
 
 from src.OsAbstractions.Linux.LinuxVk import LinuxKeyEnum
 

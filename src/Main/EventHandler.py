@@ -4,8 +4,9 @@ import inspect
 import time
 from typing import Callable, Awaitable
 
-from src import Mouse
 from src.Events import KeyboardEvent, MouseEvent, any_event
+
+from src.Main.Mouse import Mouse
 from src.Main.Keyboard import Keyboard
 from src.OsAbstractions import get_backend
 from src.OsAbstractions.Abstract.Keyboard import Down, LiteralVk
@@ -139,7 +140,7 @@ class EventQueue:
 
     # add a with poling rate
 
-    def supply_events(self, handler: Callable[[any_event], Awaitable[None] | None]):
+    async def supply_events(self, handler: Callable[[any_event], Awaitable[None] | None]):
         """
         a decorator that makes the supplied func receive
         all events
@@ -214,7 +215,7 @@ def print_event(
             return
 
 
-def print_events(
+async def print_events(
         mouse_move=False,
         mouse_click=True,
         mouse_unclick=True,

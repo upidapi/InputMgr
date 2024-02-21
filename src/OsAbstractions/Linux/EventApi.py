@@ -4,7 +4,8 @@ import evdev
 
 from src.Events import KeyboardEvent, any_event, MouseEvent
 from src.OsAbstractions.Abstract import EventApi
-from src.OsAbstractions.Linux import LinuxKeyboard
+
+from src.OsAbstractions.Linux.Keyboard import LinuxKeyboard
 from src.OsAbstractions.Linux.LinuxVk import LinuxKeyData, LinuxKeyEnum, LinuxLayout
 from src.OsAbstractions.Linux.LinuxVk.LinuxKeyEnum import LINUX_MODIFIER_MAP
 from src.OsAbstractions.Linux.Mouse import LinuxMouse

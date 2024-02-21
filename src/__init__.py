@@ -1,4 +1,4 @@
-from src.Main.EventHandler import EventStack
+from src.Main.EventHandler import EventQueue
 
 from src.Main.Keyboard import TextTyper
 from src.Main.Mouse import Mouse

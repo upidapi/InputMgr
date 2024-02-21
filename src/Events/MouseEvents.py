@@ -17,7 +17,7 @@ class Move(_BaseMouseEvent):
     delta: (int, int)
 
 
-button_type = Literal["left", "middle", "right", "forward", "backward"]
+button_type = Literal["left", "middle", "right"]  # , "forward", "backward"]
 
 
 @dataclass(frozen=True)

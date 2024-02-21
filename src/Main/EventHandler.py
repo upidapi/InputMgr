@@ -1,11 +1,13 @@
 import asyncio
-import contextlib
+import inspect
 import time
-from typing import Callable
+from typing import Callable, Awaitable
 
-from src.Events import KeyboardEvent, MouseEvent
+from src import Mouse
+from src.Events import KeyboardEvent, MouseEvent, any_event
+from src.Main.Keyboard import Keyboard
 from src.OsAbstractions import get_backend
-from src.OsAbstractions.Abstract.Keyboard import Up, Down
+from src.OsAbstractions.Abstract.Keyboard import Down, LiteralVk
 
 _event_api = get_backend().EventApi
 
@@ -80,6 +82,9 @@ class EventStack:
         self._running = False
         self._queued_events = []
 
+    def stop(self):
+        self._running = False
+
     def __enter__(self):
         self._in_with = True
 
@@ -93,8 +98,48 @@ class EventStack:
             EventDistributor.remove_sub_stack(self)
             return
 
+        if exc_type is StopIteration:
+            EventDistributor.remove_sub_stack(self)
+            return
+
         _event_api.stop_listening()
         raise exc_type(exc_val)
+
+    # simply worse than __aiter__
+    # async def __anext__(self):
+    #     """
+    #     Gets the next event, forever. If there's no events queued. Then it
+    #     waits for an event before yielding.
+    #
+    #     # ------------------example------------------
+    #     # this would print all keyboard keydown events for 10 sec
+    #
+    #     async def foo(es):
+    #         with es as ds:
+    #             while True:
+    #                 await event = next(ds)
+    #
+    #                 print_event(event)
+    #
+    #     es = EventStack()
+    #     foo(es)
+    #     await asyncio.sleep(10)
+    #     es.stop()
+    #     """
+    #
+    #     if not self._in_with:
+    #         raise TypeError("not in protective with statement")
+    #
+    #     if self._running:
+    #         raise TypeError("event conveyor already running cant start it again")
+    #
+    #     while True:
+    #         if self._queued_events:
+    #             break
+    #
+    #         await asyncio.sleep(0.001)
+    #
+    #     return self._queued_events.pop(0)
 
     async def __aiter__(self):
         """
@@ -104,12 +149,10 @@ class EventStack:
         # ------------------example------------------
         # this would print all keyboard keydown events
 
-        for event in EventHandler.get_conveyor():
-            if isinstance(event, KeyboardEvent.KeyDown):
-                event.print_event()
-
-        btw don't use break to exit the loop
-        you need to use self.stop_conveyor() to stop the loop
+        with EventStack() as es:
+            for event in es:
+                if isinstance(event, KeyboardEvent.KeyDown):
+                    event.print_event()
         """
 
         if not self._in_with:
@@ -122,6 +165,9 @@ class EventStack:
 
         while True:
             while True:
+                if not self._running:
+                    raise StopIteration  # todo or maybe StopAsyncIteration
+
                 if self._queued_events:
                     break
 
@@ -131,15 +177,36 @@ class EventStack:
 
     # add a with poling rate
 
-    # add a sub event stack that isn't a singleton
-    def stop(self):
-        self._running = False
+    def supply_events(self, handler: Callable[[any_event], Awaitable[None] | None]):
+        """
+        a decorator that makes the supplied func recive
+        all events
 
-    # @classmethod
-    # def add_handler(cls, handler):
-    #     with cls() as es:
-    #         async for event in es:
-    #             handler(event)
+        ------------example------------
+        # prints all events
+
+        es = EventStack()
+        @es.supply_events
+        async def handle_event(event)
+            print_event(event)
+
+        # to stop it either call es.stop()
+        # or raise StopIteration (inside the handler)
+        """
+        is_async = inspect.iscoroutinefunction(handler)
+
+        if is_async:
+            async def wrapper():
+                with self as _es:
+                    async for _event in _es:
+                        await handler(_event)
+
+            asyncio.create_task(wrapper())
+
+        else:
+            with self as es:
+                async for event in es:
+                    handler(event)
 
 
 class EventHandler:
@@ -189,9 +256,9 @@ class EventHandler:
 
     @classmethod
     def print_events(cls):
-        with EventStack() as es:
-            async for event in es:
-                cls.print_event(event)
+        EventStack().supply_events(
+            cls.print_events
+        )
 
     @classmethod
     def wait_for_text_typed(cls, text):
@@ -220,32 +287,38 @@ class Recorder:
     """
 
     # int corresponds to seconds sleep
-    data: list[Up | Down | int] = []
+    data: list[dict] = []
 
     es: EventStack | None = None
+    last = 0
 
     @classmethod
     def _handle_event(cls, event):
-        if not isinstance(event, KeyboardEvent.KeyDown | KeyboardEvent.KeyUp):
+        # we ignore key-send events sice they're not really
+        # user inputs and only a helper for handling them
+        if isinstance(event, KeyboardEvent.KeySend):
             return
 
-        dc = Up if KeyboardEvent.KeyUp else Down
-
-        cls.data.append(
-            dc(
-                event.key_data.vk
-            )
-        )
+        cls.data.append(event)
+        return
 
     @classmethod
-    async def start(cls):
-        with EventStack() as es:
-            cls.es = es
-            async for event in es:
-                cls._handle_event(event)
+    async def record(cls):
+        cls.es = EventStack()
+
+        async def record():
+            with cls.es:
+                async for event in cls.es:
+                    cls._handle_event(event)
+
+        # will finish eventually
+        asyncio.create_task(record())
 
     @classmethod
-    def stop(cls):
+    def stop_recording(cls):
+        """
+        stops the current recording and returns it
+        """
         if cls.es is None:
             raise TypeError("cant stop it since recorder not running")
 
@@ -254,3 +327,48 @@ class Recorder:
         data = cls.data
         cls.data = []
         return data
+
+    @classmethod
+    async def play(cls, data: [any_event]):
+        """
+        replays a seq of events (returned from stop_recording)
+        with the timings preserved
+        """
+        if not data:
+            return
+
+        start = time.time_ns() / 10 ** 6
+        initial_time = data[0].time_ms
+        start_delta = start + initial_time
+
+        for event in data:
+            event: any_event
+            to_exec = event.time_ms + start_delta - time.time_ns() / 10 ** 6
+
+            if to_exec > 0:
+                await asyncio.sleep(to_exec * 1000)
+
+            if isinstance(event, KeyboardEvent.KeyDown | KeyboardEvent.KeyUp):
+                dc = Down if isinstance(event, KeyboardEvent.KeyDown) else Down
+                Keyboard.typewrite(
+                    dc(
+                        LiteralVk(
+                            event.key_data
+                        )
+                    )
+                )
+
+            elif isinstance(event, MouseEvent.Move):
+                Mouse.set_pos(*event.pos)
+
+            elif isinstance(event, MouseEvent.Click | MouseEvent.UnClick):
+                down = isinstance(event, MouseEvent.Click)
+
+                Mouse.press_button(event.button, down)
+
+            elif isinstance(event, MouseEvent.Scroll):
+                # todo make sure that the scroll(dx, dy) == event for it (.dx, .dy)
+                Mouse.scroll(event.dx, event.dy)
+
+            else:
+                raise TypeError(f"invalid event type for playback: {event}")

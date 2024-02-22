@@ -158,6 +158,7 @@ LINUX_VK_MODIFIER_MAP: dict[int, LinuxKeyData] = {
     LinuxKeyEnum.shift_r.vk: LinuxKeyEnum.shift,
 
     # todo add more modifiers (like meta, fn)
+    #  search up a list of all modifiers on xorg
     LinuxKeyEnum.caps_lock.vk: LinuxKeyEnum.caps_lock,
     LinuxKeyEnum.num_lock.vk: LinuxKeyEnum.num_lock,
 }

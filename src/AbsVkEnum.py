@@ -5,7 +5,7 @@ from typing import Iterator, Type
 class KeyData:
     def __init__(
             self,
-            vk: int = None,
+            vk: int,
             char: str = None,
             data: dict = None,
     ):
@@ -14,14 +14,16 @@ class KeyData:
         if all(thing is None for thing in [vk, char]):
             raise ValueError("no data provided, you must provide vk or data")
 
-        self.vk = vk
-        self.char = char
+        if char is not None:
+            if vk is None:
+                raise ValueError("please also provide the vk when you provide char")
+
+        self.vk: int = vk
+        self.char: char = char
         self.data = data and {}
 
         self.combining = None
         self.is_dead = False
-
-        self._calc_is_dead()
 
         # find out if key is dead
         # todo does this always work?
@@ -29,13 +31,11 @@ class KeyData:
         # can't be dead of it isn't a char
         if self.char:
             try:
-                self.combining = unicodedata.lookup(
-                    'COMBINING ' + unicodedata.name(self.char)
-                )
+                self.combining = self.char
 
                 self.is_dead = self._calc_is_dead()
-            except KeyError:
-                pass
+            # except KeyError:
+            #     pass
             except ValueError:
                 pass
 

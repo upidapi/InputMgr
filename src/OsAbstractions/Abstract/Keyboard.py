@@ -83,12 +83,12 @@ all_conv_from_types = base_conv_from_types | Up | Down | StateData | LiteralVk
 class AbsKeyboard(ABC):
     @classmethod
     @abstractmethod
-    def get_pressed_keys(cls) -> set[KeyData]:
+    def get_pressed_keys(cls) -> set[int]:
         raise NotImplementedError
 
     @classmethod
     @abstractmethod
-    def key_pressed(cls, key: KeyData) -> bool:
+    def key_pressed(cls, key: int) -> bool:
         raise NotImplementedError
 
     @classmethod
@@ -175,7 +175,10 @@ class AbsKeyboard(ABC):
         """
 
     @classmethod
-    def calc_resulting_chars_for_button(cls, key_data: KeyData) -> str:
+    def calc_resulting_chars_for_button(
+            cls,
+            key_data: KeyData,
+    ) -> str:
         """
         todo handle Up / Down events
 

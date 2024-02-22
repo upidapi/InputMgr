@@ -54,15 +54,6 @@ class _BaseKeyboardEvent(_BaseEvent):
 
     # todo possibly add state (keys pressed) as data here
 
-    # the actual char the press results in
-    # for example if you press a dead key once noting happens
-    # but if you press it again it gets typed
-
-    # ¨ => ""
-    # ¨ + ¨ => ¨ (linux)
-    # ¨ + ¨ => ¨¨ (windows)
-    chars: str
-
 
 @dataclass(frozen=True)
 class KeySend(_BaseKeyboardEvent):
@@ -72,6 +63,15 @@ class KeySend(_BaseKeyboardEvent):
 
     Good for text input, bad for detecting when a key is pressed
     """
+
+    # the actual char the press results in
+    # for example if you press a dead key once noting happens
+    # but if you press it again it gets typed
+
+    # ¨ => ""
+    # ¨ + ¨ => ¨ (linux)
+    # ¨ + ¨ => ¨¨ (windows)
+    chars: str
 
 
 @dataclass(frozen=True)

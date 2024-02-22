@@ -7,7 +7,7 @@ from src.OsAbstractions.Abstract import EventApi
 
 from src.OsAbstractions.Linux.Keyboard import LinuxKeyboard
 from src.OsAbstractions.Linux.LinuxVk import LinuxKeyData, LinuxKeyEnum, LinuxLayout
-from src.OsAbstractions.Linux.LinuxVk.LinuxKeyEnum import LINUX_MODIFIER_MAP
+from src.OsAbstractions.Linux.LinuxVk.LinuxKeyEnum import LINUX_VK_MODIFIER_MAP
 from src.OsAbstractions.Linux.Mouse import LinuxMouse
 
 DEVICE_PATHS = []
@@ -98,15 +98,14 @@ class LinuxEventApi(EventApi):
 
         modifier_keys: set[LinuxKeyData | None] = {None}
         for key in LinuxKeyboard.get_pressed_keys():
-            key: LinuxKeyData
-
             modifier_keys.add(
-                LINUX_MODIFIER_MAP.get(
+                LINUX_VK_MODIFIER_MAP.get(
                     key, None
                 )
             )
 
         modifier_keys.remove(None)
+
         return modifier_keys
 
     @classmethod
@@ -148,6 +147,7 @@ class LinuxEventApi(EventApi):
 
         modifier_keys = cls._get_active_modifiers()
         key: LinuxKeyData
+
         try:
             # todo check if this is right
             #   they dont do the same thing
@@ -170,22 +170,36 @@ class LinuxEventApi(EventApi):
 
                 key = LinuxKeyData.from_vk(vk)
 
+        # print(key, modifier_keys)
+
         args = {
             "raw": event,
             "time_ms": event.time_ms,
             "key_data": key,
-            "chars": LinuxKeyboard.calc_resulting_chars_for_button(key)
+
         }
 
-        if isinstance(dc, KeyboardEvent.KeyDown):
-            return (
+        out = []
+
+        if dc == KeyboardEvent.KeyDown:
+            out.append(
                 KeyboardEvent.KeyDown(**args),
-                KeyboardEvent.KeySend(**args),
             )
 
-        return (
-            dc(**args),
-        )
+        if dc == KeyboardEvent.KeyUp:
+            out.append(
+                KeyboardEvent.KeyUp(**args),
+            )
+
+        if dc in (KeyboardEvent.KeyDown, KeyboardEvent.KeySend):
+            out.append(
+                KeyboardEvent.KeySend(**{
+                    **args,
+                    "chars": LinuxKeyboard.calc_resulting_chars_for_button(key)
+                }),
+            )
+
+        return tuple(out)
 
     @classmethod
     def _convert_mouse_move_event(cls, event: LinuxInputEvent) \

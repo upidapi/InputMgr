@@ -233,51 +233,6 @@ KEYSYMS = {
             for name, (keysym, (first, second)) in syms
             if name.startswith(KEYPAD_PREFIX))))
 
+
 main()
-
-
-def main2():
-    syms = sorted(list(definitions(sys.stdin.read().splitlines())))
-
-    symbols_code_text = ',\n'.join(
-        f'    \'{name}\': (0x{keysym}, {'u\'\\u%s\'' % first if first else None})'
-        for name, (keysym, (first, second)) in syms
-    )
-
-    dead_code_text = ',\n'.join(
-        f'    u\'\\u{first}\': u\'\\u{second}\''
-        for name, (keysym, (first, second)) in syms
-        if name.startswith(DEAD_PREFIX)
-        and first and second and first != second)
-
-    keypad_keys = ',\n'.join(
-        f'    \'{name}\': 0x{keysym}'
-        for name, (keysym, (_, _)) in syms
-        if name.startswith(KEYPAD_PREFIX))
-
-    sys.stdout.write(f"""
-SYMBOLS = {{
-{symbols_code_text}
-}}
-
-DEAD_KEYS = {{
-{dead_code_text}
-}}
-
-KEYPAD_KEYS = {{
-{keypad_keys}
-}}
-
-CHARS = {{
-    codepoint: name
-    for name, (keysym, codepoint) in SYMBOLS.items()
-    if codepoint
-}}
-
-KEYSYMS = {{
-    keysym: name
-    for name, (keysym, codepoint) in SYMBOLS.items()
-    if codepoint
-}}
-""")
 

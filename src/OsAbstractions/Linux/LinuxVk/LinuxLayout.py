@@ -3,6 +3,7 @@ import functools
 import os
 import re
 import subprocess
+import warnings
 
 from src.OsAbstractions.Linux.LinuxVk import xorg_keysyms, LinuxKeyEnum, LinuxKeyData
 
@@ -217,6 +218,8 @@ class LinuxLayout:
         we may want to implement this ourselves.
         """
         if __debug__:
+            print("not using actual keyboard layout data since it debug mode is enabled")
+
             # for debug when you don't have root
             data_path = os.path.join(
                 os.path.dirname(__file__),

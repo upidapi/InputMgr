@@ -53,7 +53,9 @@ class _EventDistributor:
         cls._running_sub_stacks.add(sub_stack)
 
         if need_start:
-            cls.run_event_distributor()
+            asyncio.create_task(
+                cls.run_event_distributor()
+            )
 
     @classmethod
     def remove_sub_stack(cls, sub_stack):
@@ -192,10 +194,14 @@ def print_event(
 
     if isinstance(event, KeyboardEvent.event_types):
         if any((keyboard_keydown, keyboard_keyup, keyboard_key_send)):
-            f_char = event.key_data.char or ''
+            safe_char = event.key_data.char or ''
+
+            f_char = f"\"{safe_char}\"{' ' * (1 - len(safe_char))}"
+
             vk = str(event.key_data.vk).ljust(4)
 
-            print(f"{padded_event}{vk} \"{f_char}\"")
+            end_part = f' \"{event.chars}\"' if isinstance(event, KeyboardEvent.KeySend) else ''
+            print(f"{padded_event}{vk:<3} {f_char} {end_part}")
         return
 
     if isinstance(event, MouseEvent.event_types):

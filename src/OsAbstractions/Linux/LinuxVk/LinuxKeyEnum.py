@@ -1,3 +1,6 @@
+import os
+import re
+
 import evdev
 
 from src.AbsVkEnum import VkEnum
@@ -25,6 +28,9 @@ def _k_from_name(kernel_name, x_name=None, **kwargs):
     )
 
 
+# https://manpages.ubuntu.com/manpages/jammy/man5/keymaps.5.html
+
+
 class LinuxKeyEnum(VkEnum, enum_item_type=LinuxKeyData):
     """
     a map from name to vk, i.e. the state is ignored
@@ -39,31 +45,30 @@ class LinuxKeyEnum(VkEnum, enum_item_type=LinuxKeyData):
     # </editor-fold>
 
     # <editor-fold desc="Modifiers">
-    alt = _k_from_name("KEY_LEFTALT", "Alt_L")
-    alt_l = _k_from_name("KEY_LEFTALT", "Alt_L")
+    alt = alt_l = _k_from_name("KEY_LEFTALT", "Alt")
 
     # alt_r is just alt_gr
-    alt_r = _k_from_name("KEY_RIGHTALT", "Alt_R")
-    alt_gr = _k_from_name("KEY_RIGHTALT", "Mode_switch")
+    alt_gr = alt_r = _k_from_name("KEY_RIGHTALT", "AltGr")
 
     caps_lock = _k_from_name("KEY_CAPSLOCK", "Caps_Lock")
 
     # windows / command / super key
-    cmd = _k_from_name("KEY_LEFTMETA", "Super_L")
-    cmd_l = _k_from_name("KEY_LEFTMETA", "Super_L")
+    cmd_l = cmd = _k_from_name("KEY_LEFTMETA", "Super_L")
     cmd_r = _k_from_name("KEY_RIGHTMETA", "Super_R")
 
-    ctrl = _k_from_name("KEY_LEFTCTRL", "Control_L")
+    # this is true on my layout, probably not the case for you
+    ctrl = _k_from_name("KEY_LEFTCTRL", "Control")
     ctrl_l = _k_from_name("KEY_LEFTCTRL", "Control_L")
     ctrl_r = _k_from_name("KEY_RIGHTCTRL", "Control_R")
 
-    shift = _k_from_name("KEY_LEFTSHIFT", "Shift_L")
+    # this is true on my layout, probably not the case for you
+    shift = _k_from_name("KEY_LEFTSHIFT", "Shift")
     shift_l = _k_from_name("KEY_LEFTSHIFT", "Shift_L")
     shift_r = _k_from_name("KEY_RIGHTSHIFT", "Shift_R")
     # </editor-fold>
 
-    backspace = _k_from_name("KEY_BACKSPACE", "BackSpace")
-    delete = _k_from_name("KEY_DELETE", "Delete")
+    backspace = _k_from_name("SW_MUTE_DEVICE", "Delete")
+    delete = _k_from_name("KEY_DELETE", "Remove")
     enter = _k_from_name("KEY_ENTER", "Return", char="\n")
     space = _k_from_name("KEY_SPACE", "space", char=' ')
     tab = _k_from_name("KEY_TAB", "Tab", char='\t')
@@ -90,15 +95,15 @@ class LinuxKeyEnum(VkEnum, enum_item_type=LinuxKeyData):
     f20 = _k_from_name("KEY_F20", "F20")
 
     esc = _k_from_name("KEY_ESC", "Escape")
-    home = _k_from_name("KEY_HOME", "Home")
-    end = _k_from_name("KEY_END", "End")
-    page_down = _k_from_name("KEY_PAGEDOWN", "Page_Down")
-    page_up = _k_from_name("KEY_PAGEUP", "Page_Up")
+    home = _k_from_name("KEY_HOME", "Find")
+    end = _k_from_name("KEY_END", "Select")
+    page_down = _k_from_name("KEY_PAGEDOWN", "Next")
+    page_up = _k_from_name("KEY_PAGEUP", "Prior")
 
     insert = _k_from_name("KEY_INSERT", "Insert")
     menu = _k_from_name("KEY_MENU", "Menu")
     pause = _k_from_name("KEY_PAUSE", "Pause")
-    print_screen = _k_from_name("KEY_SYSRQ", "Print")
+    print_screen = _k_from_name("KEY_SYSRQ", "Compose")
     scroll_lock = _k_from_name("KEY_SCROLLLOCK", "Scroll_Lock")
 
     # arrow keys
@@ -142,18 +147,19 @@ class LinuxKeyEnum(VkEnum, enum_item_type=LinuxKeyData):
     # </editor-fold>
 
 
-LINUX_MODIFIER_MAP: dict[LinuxKeyData, LinuxKeyData] = {
-    LinuxKeyEnum.alt: LinuxKeyEnum.alt,
-    LinuxKeyEnum.alt_l: LinuxKeyEnum.alt,
+LINUX_VK_MODIFIER_MAP: dict[int, LinuxKeyData] = {
+    LinuxKeyEnum.alt.vk: LinuxKeyEnum.alt,
+    LinuxKeyEnum.alt_l.vk: LinuxKeyEnum.alt,
 
-    LinuxKeyEnum.alt_gr: LinuxKeyEnum.alt_gr,
+    LinuxKeyEnum.alt_gr.vk: LinuxKeyEnum.alt_gr,
 
-    LinuxKeyEnum.shift: LinuxKeyEnum.shift,
-    LinuxKeyEnum.shift_l: LinuxKeyEnum.shift,
-    LinuxKeyEnum.shift_r: LinuxKeyEnum.shift,
+    LinuxKeyEnum.shift.vk: LinuxKeyEnum.shift,
+    LinuxKeyEnum.shift_l.vk: LinuxKeyEnum.shift,
+    LinuxKeyEnum.shift_r.vk: LinuxKeyEnum.shift,
 
-    # todo add more modifiers
-    LinuxKeyEnum.ctrl: LinuxKeyEnum.ctrl,
+    # todo add more modifiers (like meta, fn)
+    LinuxKeyEnum.caps_lock.vk: LinuxKeyEnum.caps_lock,
+    LinuxKeyEnum.num_lock.vk: LinuxKeyEnum.num_lock,
 }
 
 
@@ -272,7 +278,39 @@ _linux_enum_text_data = """
 """
 
 
+def _get_x_vk_to_x_code():
+    """
+    Loads the keyboard layout.
+
+    For simplicity, we call out to the ``dumpkeys`` binary. In the future,
+    we may want to implement this ourselves.
+    """
+
+    data_path = os.path.join(
+        os.path.dirname(__file__),
+        "ExampleLayoutData.txt"
+    )
+
+    with open(data_path) as f:
+        raw_data = f.read()
+
+    keycode_re = re.compile(
+        r"keycode\s+(\d+)\s+=(.*)")
+
+    key_data = keycode_re.findall(raw_data)
+
+    out = {}
+    for keycode, names in key_data[::-1]:
+        vk = int(keycode)
+
+        out[vk] = names
+
+    return out
+
+
 def _helper():
+    vk_to_names = _get_x_vk_to_x_code()
+
     out = []
 
     for full_line in _linux_enum_text_data.split("\n    "):
@@ -310,10 +348,31 @@ def _helper():
 
         rest_args = args[2:]
 
-        if x_name == kernel_name or x_name is None:
+        # if x_name == kernel_name or x_name is None:
+        #     inp = input(f"x_name for {vk} {kernel_name}")
+        #     if inp:
+        #         x_name = inp
+
+        # convert kernel_name to to x_name
+        possible_names = vk_to_names.get(vk, None)
+        possible_names = [
+            name for name in possible_names.split()
+            if name != "VoidSymbol"
+        ]
+
+        while True:
+            print()
+            print()
+            print("".join(f"{i}: {name}   " for i, name in enumerate(possible_names)))
             inp = input(f"x_name for {vk} {kernel_name}")
-            if inp:
-                x_name = inp
+            if not inp:
+                break
+
+            if inp in [str(i) for i in range(len(possible_names))]:
+                x_name = possible_names[int(inp)]
+                break
+
+            print("invalid choice")
 
         args = [f"\"{kernel_name}\""]
         if x_name:
@@ -328,5 +387,78 @@ def _helper():
     print("\n".join(out))
 
 
+def _vk_to_rest(vks):
+    vk_to_names = _get_x_vk_to_x_code()
+
+    rev_multidict: dict[int, set[int]] = {}
+    for key, value in evdev.ecodes.ecodes.items():
+        if value in rev_multidict.keys():
+            rev_multidict[value].add(key)
+        else:
+            rev_multidict[value] = {key}
+
+    out = []
+    for vk in vks:
+        # kernel_name = rev.get(vk)
+        x_name = None
+
+        possible_x_names = vk_to_names.get(vk, None)
+        possible_x_names = [
+            name for name in possible_x_names.split()
+            if name != "VoidSymbol"
+        ]
+
+        while True:
+            print()
+            print()
+            print("".join(f"{i}: {name}   " for i, name in enumerate(possible_x_names)))
+            inp = input(f"x_name for {vk}")
+            if not inp:
+                break
+
+            if inp in [str(i) for i in range(len(possible_x_names))]:
+                x_name = possible_x_names[int(inp)]
+                break
+
+            print("invalid choice")
+
+        possible_kernel_names = [*rev_multidict.get(vk, set())]
+
+        kernel_name = None
+
+        while True:
+            print()
+            print()
+            print("".join(f"{i}: {name}   " for i, name in enumerate(possible_kernel_names)))
+            inp = input(f"kernel_name for {vk} {x_name}")
+            if not inp:
+                break
+
+            if inp in [str(i) for i in range(len(possible_kernel_names))]:
+                kernel_name = possible_kernel_names[int(inp)]
+                break
+
+            print("invalid choice")
+
+        part = []
+        if kernel_name is not None:
+            part.append(kernel_name)
+        if x_name is not None:
+            part.append(x_name)
+
+        out.append(tuple(part))
+
+    for line in out:
+        print(", ".join([f"\"{line}\"" for line in line]))
+
+
 if __name__ == '__main__':
-    _helper()
+    _vk_to_rest([
+        14,
+        111,
+        102,
+        107,
+        109,
+        104,
+        99,
+    ])

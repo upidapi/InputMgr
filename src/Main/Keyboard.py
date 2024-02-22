@@ -12,7 +12,7 @@ _event_api = _backend.EventApi
 class Keyboard:
     @classmethod
     def is_pressed(cls, key: KeyData):
-        return _keyboard.key_pressed(key)
+        return _keyboard.key_pressed(key.vk)
 
     typewrite = TypeWriter.typewrite
 

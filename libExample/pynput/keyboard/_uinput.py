@@ -78,17 +78,21 @@ class Key(enum.Enum):
     alt_gr = KeyCode._from_name('Mode_switch', 'KEY_RIGHTALT')
     backspace = KeyCode._from_name('BackSpace', 'KEY_BACKSPACE')
     caps_lock = KeyCode._from_name('Caps_Lock', 'KEY_CAPSLOCK')
+
     cmd = KeyCode._from_name('Super_L', 'KEY_LEFTMETA')
     cmd_l = KeyCode._from_name('Super_L', 'KEY_LEFTMETA')
     cmd_r = KeyCode._from_name('Super_R', 'KEY_RIGHTMETA')
+
     ctrl = KeyCode._from_name('Control_L', 'KEY_LEFTCTRL')
     ctrl_l = KeyCode._from_name('Control_L', 'KEY_LEFTCTRL')
     ctrl_r = KeyCode._from_name('Control_R', 'KEY_RIGHTCTRL')
+
     delete = KeyCode._from_name('Delete', 'KEY_DELETE')
     down = KeyCode._from_name('Down', 'KEY_DOWN')
     end = KeyCode._from_name('End', 'KEY_END')
     enter = KeyCode._from_name('Return', 'KEY_ENTER')
     esc = KeyCode._from_name('Escape', 'KEY_ESC')
+
     f1 = KeyCode._from_name('F1', 'KEY_F1')
     f2 = KeyCode._from_name('F2', 'KEY_F2')
     f3 = KeyCode._from_name('F3', 'KEY_F3')

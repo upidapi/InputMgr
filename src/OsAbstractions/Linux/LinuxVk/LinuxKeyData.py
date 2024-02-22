@@ -1,5 +1,5 @@
 from src.AbsVkEnum import KeyData
-from src.OsAbstractions.Linux.LinuxVk.xorg_keysyms import unicode_char_to_name, name_to_symbolic_key
+from src.OsAbstractions.Linux.LinuxVk.xorg_keysyms import is_dead
 
 
 class LinuxKeyData(KeyData):
@@ -11,12 +11,6 @@ class LinuxKeyData(KeyData):
 
     def _calc_is_dead(self):
         try:
-            name = unicode_char_to_name(self.combining)
-            symbolic_key = name_to_symbolic_key(name)
-
-            if symbolic_key:
-                return True
-            else:
-                return False
+            return is_dead(self.char)
         except KeyError:
-            pass
+            return False

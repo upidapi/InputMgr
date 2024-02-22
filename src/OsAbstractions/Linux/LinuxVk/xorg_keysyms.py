@@ -1632,6 +1632,8 @@ SYMBOLS = {
     'zstroke': (0x10001b6, u'\u01B6')}
 
 # todo "is this all?"
+#  I think so since it's compiled from the kernel code
+# maps from dead key to non-dead version of said dead key
 DEAD_KEYS = {
     u'\u0307': u'\u02D9',
     u'\u030A': u'\u02DA',
@@ -1695,6 +1697,10 @@ _CHARS = {
     if codepoint}
 
 
+def is_dead(char):
+    return char in DEAD_KEYS.keys()
+
+
 def unicode_char_to_name(unicode_char):
     return _CHARS[unicode_char]
 
@@ -1715,3 +1721,206 @@ def symbolic_key_to_name(symbolic_key):
 
 def name_to_symbolic_key(unicode_char):
     return SYMBOLS[unicode_char][0]
+
+
+def main():
+    """
+    Converts <keysymdef.h> to Python mappings.
+    """
+
+    import re
+    import sys
+    import unicodedata
+
+    #: The regular expression used to extract normal values; they are on the form:
+    #:
+    #:     #define XK_<name> <hex keysym> /* <unicode point> <character name> */
+    keysym_re = re.compile(r'''(?mx)
+        # name
+        \#define \s+ XK_([a-zA-Z0-9_]+)\s+
+    
+        # keysym
+        0x([0-9a-fA-F]+)\s+
+    
+        # codepoint
+        /\*\s* U\+([0-9a-fA-F]+)\s+.*?\*/
+    
+        # description, not present
+        ''')
+
+    #: The prefix used for dead keys
+    dead_prefix = 'dead_'
+
+    #: The regular expression used to extract dead key values; they are on the form:
+    #:
+    #:     #define XK_dead_<name> <hex keysym> [/* description */]
+    dead_keysym_re = re.compile(r'''(?mx)
+        # name
+        \#define \s+ XK_(%s[a-zA-Z0-9_]+)\s+
+    
+        # keysym
+        0x([0-9a-fA-F]+)\s*
+    
+        # codepoint, not present
+    
+        # description
+        (?:/\*(.*?)\*/)?''' % dead_prefix)
+
+    #: The prefix used for keypad keys
+    keypad_prefix = 'KP_'
+
+    #: The regular expression used to extract keypad key values; they are on the
+    #: form:
+    #:
+    #:     #define XK_KP_<name> <hex keysym> [/* description */]
+    kp_keypad_re = re.compile(rf'''(?mx)
+        # name
+        \#define \s+ XK_({keypad_prefix}[a-zA-Z0-9_]+)\s+
+    
+        # keysym
+        0x([0-9a-fA-F]+)\s*
+    
+        # codepoint, not present
+    
+        # description
+        (?:/\*(.*?)\*/)?''')
+
+    def lookup(name):
+        """Looks up a named unicode character.
+
+        If it does not exist, ``None`` is returned, otherwise the code point is
+        returned.
+
+        :return: a hex number as a string or ``None``
+        """
+        try:
+            return '%04X' % ord(unicodedata.lookup(name))
+        except KeyError:
+            return None
+
+    # A mapping from dead keys to their unicode codepoints
+    DEAD_CODEPOINTS = {
+        name: (
+            lookup('COMBINING ' + codepoint),
+            lookup(codepoint))
+        for name, codepoint in {
+            'abovecomma': 'COMMA ABOVE RIGHT',
+            'abovedot': 'DOT ABOVE',
+            'abovereversedcomma': 'TURNED COMMA ABOVE',
+            'abovering': 'RING ABOVE',
+            'aboveverticalline': 'VERTICAL LINE ABOVE',
+            'acute': 'ACUTE ACCENT',
+            'belowbreve': 'BREVE BELOW',
+            'belowcircumflex': 'CIRCUMFLEX ACCENT BELOW',
+            'belowcomma': 'COMMA BELOW',
+            'belowdiaeresis': 'DIAERESIS BELOW',
+            'belowdot': 'DOT BELOW',
+            'belowmacron': 'MACRON BELOW',
+            'belowring': 'RING BELOW',
+            'belowtilde': 'TILDE BELOW',
+            'belowverticalline': 'VERTICAL LINE BELOW',
+            'breve': 'BREVE',
+            'caron': 'CARON',
+            'cedilla': 'CEDILLA',
+            'circumflex': 'CIRCUMFLEX ACCENT',
+            'diaeresis': 'DIAERESIS',
+            'doubleacute': 'DOUBLE ACUTE ACCENT',
+            'doublegrave': 'DOUBLE GRAVE ACCENT',
+            'grave': 'GRAVE ACCENT',
+            'hook': 'HOOK ABOVE',
+            'horn': 'HORN',
+            'invertedbreve': 'INVERTED BREVE BELOW',
+            'iota': 'GREEK YPOGEGRAMMENI',
+            'longsolidusoverlay': 'LONG SOLIDUS OVERLAY',
+            'lowline': 'LOW LINE',
+            'macron': 'MACRON',
+            'ogonek': 'OGONEK',
+            'stroke': 'SHORT STROKE OVERLAY',
+            'tilde': 'TILDE'}.items()}
+
+    def definitions(data):
+        """Yields all keysym as the tuple ``(name, keysym, (first, second))``.
+
+        ``(first, second))`` is a tuple of codepoints. The first value is the one
+        to use in the lookup table, and the second one is used only by dead keys to
+        indicate the non-combining version. If both are ``None``, the keysym is a
+        keypad key.
+
+        If a codepoint is ``None``, the definition is for a dead key with no
+        unicode codepoint.
+        """
+        for line in data:
+            for regex in (keysym_re, dead_keysym_re, kp_keypad_re):
+                m = regex.search(line)
+                if m:
+                    name, keysym, codepoint, description = m.groups()
+                    if codepoint:
+                        # If the code point is specified, this keysym corresponds
+                        # to a normal character
+                        yield (
+                            name,
+                            (keysym, (codepoint, codepoint)))
+                        break
+
+                    elif name.startswith(dead_prefix) and (
+                            not description or 'alias for' not in description):
+                        yield (
+                            name,
+                            (keysym, DEAD_CODEPOINTS.get(
+                                name[len(dead_prefix):],
+                                (None, None))))
+                        break
+
+                    elif name.startswith(keypad_prefix):
+                        yield (
+                            name,
+                            (keysym, (None, None)))
+                        break
+
+    syms = sorted(list(definitions(sys.stdin.read().splitlines())))
+
+    symbols_code_text = ',\n'.join(
+        f"    \'{name}\': (0x{keysym}, u'\\u{first if first else None}')"
+        for name, (keysym, (first, second)) in syms
+    )
+
+    dead_code_text = ',\n'.join(
+        f'    u\'\\u{first}\': u\'\\u{second}\''
+        for name, (keysym, (first, second)) in syms
+        if name.startswith(dead_prefix)
+        and first and second and first != second)
+
+    keypad_keys = ',\n'.join(
+        f'    \'{name}\': 0x{keysym}'
+        for name, (keysym, (_, _)) in syms
+        if name.startswith(keypad_prefix))
+
+    sys.stdout.write(f"""
+SYMBOLS = {{
+{symbols_code_text}
+}}
+
+DEAD_KEYS = {{
+{dead_code_text}
+}}
+
+KEYPAD_KEYS = {{
+{keypad_keys}
+}}
+
+CHARS = {{
+    codepoint: name
+    for name, (keysym, codepoint) in SYMBOLS.items()
+    if codepoint
+}}
+
+KEYSYMS = {{
+    keysym: name
+    for name, (keysym, codepoint) in SYMBOLS.items()
+    if codepoint
+}}
+""")
+
+
+if __name__ == '__main__':
+    main()

@@ -1,13 +1,26 @@
 from typing import Literal
-import unicodedata
 
 import evdev
 
 from src.OsAbstractions.Abstract import AbsKeyboard
 from src.OsAbstractions.Abstract.Keyboard import InvalidKeyException, StateData
-from src.OsAbstractions.Linux.LinuxVk import LinuxKeyData, LinuxLayout, LinuxKeyEnum
+from src.OsAbstractions.Linux.LinuxVk import (
+    LinuxKeyData,
+    LinuxLayout,
+    LinuxKeyEnum
+)
 from src.OsAbstractions.Linux.LinuxVk.LinuxKeyEnum import LINUX_VK_MODIFIER_MAP
-from src.OsAbstractions.Linux.LinuxVk.xorg_keysyms import DEAD_KEYS
+
+
+PLATFORM: Literal["web", "other"] = "other"
+
+# keys that, normally (without mods) results in chars.
+# They terminate dead keys normally.
+# But on the web they act the same as a space does. I.e.
+# returns the non-dead version of a char
+
+# so set it to False for web otherwise True
+NON_CHARS_TERMINATE_DEAD = True if "other" else False
 
 
 class LinuxKeyboard(AbsKeyboard):
@@ -89,7 +102,6 @@ class LinuxKeyboard(AbsKeyboard):
         need_pressed = set()
         need_unpressed = set()
 
-        # todo possibly move this to StateMgr
         rev_multidict: dict[int, set[int]] = {}
         for key, value in LINUX_VK_MODIFIER_MAP.items():
             if value.vk in rev_multidict.keys():
@@ -145,8 +157,13 @@ class LinuxKeyboard(AbsKeyboard):
         return StateData(
             do=tuple(do),
             need_pressed=need_pressed,
-            need_unpressed=need_unpressed,  # | {LinuxKeyEnum.ctrl},
+            need_unpressed=need_unpressed,
         )
+
+    # todo make it so that it tries to split chars to type them
+    #   eg â => ^, a
+    #   feel free to implement this if you feel like it but it's
+    #   a but unnecessary
 
     @classmethod
     def calc_buttons_for_char(cls, char: str) -> StateData:
@@ -170,7 +187,8 @@ class LinuxKeyboard(AbsKeyboard):
         resets the saved press state
 
         so if you've pressed calc_resulting_chars_for_button("¨") and call this
-        if you then press calc_resulting_chars_for_button("¨") again nothing happens
+        if you then press calc_resulting_chars_for_button("¨") again nothing
+        happens
         you have to press it another time for it to become "¨¨" (windows)
         """
         cls._key_press_buffer_data = []
@@ -197,8 +215,16 @@ class LinuxKeyboard(AbsKeyboard):
         one press can result in multiple characters like
         "¨" + "¨" => "¨¨"  (windows)
         """
+        if key_data is None:
+            return ""
 
-        # print(key_data, key_data.is_dead, cls._key_press_buffer_type, cls._key_press_buffer_data)
+        # mod keys are basically ignored when it comes to characters
+        # excluding the mod part of it
+
+        is_mod = key_data.vk in LINUX_VK_MODIFIER_MAP.keys()
+        if is_mod:
+            return ""
+
         if cls._key_press_buffer_type == "none":
             if key_data.is_dead:
                 cls._key_press_buffer_type = "dead"
@@ -208,91 +234,22 @@ class LinuxKeyboard(AbsKeyboard):
 
             return key_data.char or ""
 
-            # unicode not supported
-            # if key_data == LinuxLayout.for_char("u"):
-            #     need_pressed, need_unpressed = cls._get_req_mod_state(
-            #         {LinuxKeyEnum.shift, LinuxKeyEnum.ctrl}
-            #     )
-            #
-            #     # all correct keys pressed
-            #     if not need_pressed and not need_unpressed:
-            #         cls._key_press_buffer_type = "unicode"
-            #         cls._key_press_buffer_data = []
-
         if cls._key_press_buffer_type == "dead":
             combine_data: LinuxKeyData = cls._key_press_buffer_data[0]
 
-            # todo use LINUX_VK_MODIFIER_MAP.keys() to implement
-            is_mod = False
-            if is_mod:
-                return ""
-
             cls.clear_key_press_buffer()
 
-            if key_data == LinuxKeyEnum.space:
-                # dead + space => dead
-                # print("1")
-                return DEAD_KEYS.get(key_data.char or "", key_data.char or "")
+            if key_data.char is None:
+                if NON_CHARS_TERMINATE_DEAD:
+                    return ""
+                else:
+                    return combine_data.join(
+                        LinuxKeyData.from_char(" ")
+                    )
 
-            # try to combine
-            combined = unicodedata.normalize(
-                "NFC",
-                (key_data.char or "") + (combine_data.combining or "")
-            )
+            return combine_data.join(key_data)
 
-            if len(combined) != len(key_data.char or "") + len(combine_data.char or ""):
-                # chars combined, return the combined version
-                # print("2")
-                return combined
-
-            # two identical dead keys combine to make one (non-dead dead key)
-            if key_data.char == combine_data.char:
-                # print(f" {key_data.char} {DEAD_KEYS[key_data.char]}")
-                # print("3")
-                return DEAD_KEYS.get(key_data.char or "", key_data.char or "")
-
-            # thy didn't so the result is nothing
-            # print("4")
-            return ""
-
-        # if cls._key_press_buffer_type == "unicode":
-        #     # max 6
-        #
-        #
-        #     # find out what terminates a unicode char
-        #
-        #     # convert to base form (@ => 2, A => a, etc)
-        #     base_form = LinuxLayout.for_vk(key_data.vk, set())
-        #
-        #     if isinstance(event_type, KeyboardEvent.KeyUp):
-        #         if key_data in LinuxLayout.for_char("u"):
-        #             return "compiled"
-        #
-        #     # can it represent hex?
-        #     if base_form.char.lower() in "0123456789abcdef":
-        #         cls._key_press_buffer_data.append(base_form)
-        #         return ""
-        #
-        #     if key_data == LinuxKeyEnum.enter:
-        #     #
-        #     try:
-        #         # can it represent hex?
-        #         int(base_form.char, 16)
-        #
-        #     except ValueError:
-        #         # non valid hex char terminate unicode seq
-        #         return
-        #         out = ""
-        #         for button in cls._key_press_buffer_data:
-        #             out += button.char
-        #
-        #         cls.clear_key_press_buffer()
-        #
-        #         # probably handle enter differently since i don't think it
-        #         # results in a \n char
-        #         return chr(int(out, 16)) + cls.calc_resulting_chars_for_button(key_data)
-        #
-        #     cls._key_press_buffer_data.append(base_form)
-        #     return ""
-
-        raise TypeError(f"cls._key_press_buffer_type has a invalid value \"{cls._key_press_buffer_type}\"")
+        raise TypeError(
+            f"cls._key_press_buffer_type has a invalid value "
+            f"\"{cls._key_press_buffer_type}\""
+        )

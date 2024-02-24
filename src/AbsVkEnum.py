@@ -1,3 +1,4 @@
+# import unicodedata
 import unicodedata
 from typing import Iterator, Type
 
@@ -7,7 +8,7 @@ class KeyData:
             self,
             vk: int,
             char: str = None,
-            data: dict = None,
+            # data: dict = None,
     ):
 
         # no actual data
@@ -20,24 +21,24 @@ class KeyData:
 
         self.vk: int = vk
         self.char: char = char
-        self.data = data and {}
+        # self.data = data and {}
 
-        self.combining = None
         self.is_dead = False
-
-        # find out if key is dead
-        # todo does this always work?
 
         # can't be dead of it isn't a char
         if self.char:
-            try:
-                self.combining = self.char
+            self.is_dead = self._calc_is_dead()
 
-                self.is_dead = self._calc_is_dead()
-            # except KeyError:
-            #     pass
-            except ValueError:
-                pass
+    def get_resulting_char(self) -> str:
+        if self.is_dead:
+            u_name = unicodedata.name(self.char)
+            if u_name.startswith("COMBINING "):
+                base_name = u_name[len("COMBINING "):]
+                return unicodedata.lookup(base_name)
+
+            return self.char
+
+        return self.char
 
     def _calc_is_dead(self):
         """
@@ -78,38 +79,10 @@ class KeyData:
 
     def join(self, key):
         """
-        Applies this dead key to another key and returns the result.
-
-        Joining a dead key with space (``' '``) or itself yields the non-dead
-        version of this key, if one exists; for example,
-        ``KeyCode.from_dead('~').join(KeyCode.from_char(' '))`` equals
-        ``KeyCode.from_char('~')`` and
-        ``KeyCode.from_dead('~').join(KeyCode.from_dead('~'))``.
-
-        :param KeyCode key: The key to join with this key.
-
-        :return: a key code
-
-        :raises ValueError: if the keys cannot be joined
+        joins self (a dead char)
+        with another
         """
-        # A non-dead key cannot be joined
-        if not self.is_dead:
-            raise ValueError(self)
-
-        # Joining two of the same keycodes, or joining with space, yields the
-        # non-dead version of the key
-        if key.char == ' ' or self == key:
-            return self.from_char(self.char)
-
-        # Otherwise we combine the characters
-        if key.char is not None:
-            combined = unicodedata.normalize(
-                'NFC',
-                key.char + self.combining)
-            if combined:
-                return self.from_char(combined)
-
-        raise ValueError(key)
+        raise NotImplementedError
 
     @classmethod
     def from_vk(cls, vk, **kwargs):
@@ -132,18 +105,6 @@ class KeyData:
         :return: a key code
         """
         return cls(char=char, **kwargs)
-
-    # @classmethod
-    # def from_dead(cls, char, **kwargs):
-    #     """Creates a dead key.
-    #
-    #     :param char: The dead key. This should be the unicode character
-    #         representing the stand alone character, such as ``'~'`` for
-    #         *COMBINING TILDE*.
-    #
-    #     :return: a key code
-    #     """
-    #     return cls(char=char, is_dead=True, **kwargs)
 
 
 class MetaVkEnum(type):

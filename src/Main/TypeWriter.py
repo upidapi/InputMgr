@@ -4,8 +4,8 @@ from typing import Self
 from src.AbsVkEnum import KeyData
 from src.Events import KeyboardEvent
 from src.OsAbstractions import get_backend, get_backend_type
-from src.OsAbstractions.Abstract.Keyboard import StateData, Down, Up, all_conv_from_types, LiteralVk
-
+from src.OsAbstractions.Abstract.Keyboard import StateData, Down, Up, \
+    all_conv_from_types, LiteralVk
 
 __all__ = [
     "StateData",
@@ -15,7 +15,6 @@ __all__ = [
 
     "typewrite",
 ]
-
 
 _backend_type = get_backend_type()
 
@@ -47,29 +46,22 @@ class _Down:
 press_seq_type = tuple[_Up | _Down | int, ...]
 
 
-# class Pressed:
-#     def __init__(self, pressed: (base_conv_from_types,), do: base_conv_from_types | Up | Down):
-#         self.pressed = pressed
-#         self.do = do
-
-
 class _StateData:
     def __init__(
             self,
             do: tuple[int | _Up | _Down | Self, ...],
             need_pressed: set[int] = None,
-            need_unpressed: set[int] = None
+            need_unpressed: set[int] = None,
     ):
         self.do = do
         self.need_pressed = need_pressed or set()
         self.need_unpressed = need_unpressed or set()
 
     def __repr__(self):
-        return f"{type(self).__name__}({self.need_pressed} {self.do} {self.need_unpressed})"
-
-
-# todo possibly add a Literal class
-#   that works like type_literal but only for a part
+        return (f"{type(self).__name__}("
+                f"{self.need_pressed} "
+                f"{self.do} "
+                f"{self.need_unpressed})")
 
 
 class _TypeWriter:
@@ -86,7 +78,6 @@ class _TypeWriter:
                 time.time_ns() / 10 ** 6,
                 "synthetic event",
                 key,
-                key.char or ""
             )
         )
 
@@ -96,11 +87,8 @@ class _TypeWriter:
         _keyboard.queue_press(vk, down)
 
     @classmethod
-    def _get_seq_class(cls, down):
-        return _Down if down else _Up
-
-    @classmethod
-    def _exec_press_seq(cls, press_seq: press_seq_type, delta_press: int | None):
+    def _exec_press_seq(cls, press_seq: press_seq_type,
+                        delta_press: int | None):
         for thing in press_seq:
             if isinstance(thing, int):
                 cls._queue_vk_press(thing, True)
@@ -137,7 +125,10 @@ class _TypeWriter:
 
         for state in state_datas:
             out += [
-                _Up(*((last_pressed - state.need_pressed) & state.need_unpressed)),
+                _Up(*(
+                    (last_pressed - state.need_pressed)
+                    & state.need_unpressed
+                )),
                 _Down(*(state.need_pressed - last_pressed)),
             ]
 
@@ -151,7 +142,11 @@ class _TypeWriter:
                     out.append(x)
 
             # we're "lazy", so we don't unpressed the keys that we don't have to
-            not_unpressed = last_pressed - state.need_pressed - state.need_unpressed
+            not_unpressed = (
+                    last_pressed
+                    - state.need_pressed
+                    - state.need_unpressed
+            )
 
             # but we have to remember that we didn't un press them
             last_pressed = {*state.need_pressed, *not_unpressed}
@@ -186,7 +181,8 @@ class _TypeWriter:
         return tuple(clean_press_seq)
 
     @classmethod
-    def _remove_modifiers(cls, *inp: all_conv_from_types) -> tuple[all_conv_from_types, ...]:
+    def _remove_modifiers(cls, *inp: all_conv_from_types) \
+            -> tuple[all_conv_from_types, ...]:
         """
         converts all "all_conv_from_types" so that all str and
         KeyData become just int (vks)
@@ -246,7 +242,8 @@ class _TypeWriter:
         return tuple(out)
 
     @classmethod
-    def _compile_to_state_data(cls, *inp: all_conv_from_types) -> tuple[_StateData, ...]:
+    def _compile_to_state_data(cls, *inp: all_conv_from_types)\
+            -> tuple[_StateData, ...]:
         out: list[_StateData] = []
 
         for part in inp:
@@ -280,9 +277,11 @@ class _TypeWriter:
                 ]
 
             elif isinstance(part, StateData):
-                if any(not isinstance(x, int) for x in {*part.need_pressed, *part.need_unpressed}):
+                if any(not isinstance(x, int) for x in
+                       {*part.need_pressed, *part.need_unpressed}):
                     raise TypeError(
-                        "the need_pressed and need_unpressed has to consist of only int(s)\n"
+                        "the need_pressed and need_unpressed has to consist "
+                        "of only int(s)\n"
                         f"{part.need_pressed=}\n"
                         f"{part.need_unpressed=}\n"
                     )
@@ -320,12 +319,14 @@ class _TypeWriter:
                         )
 
                     else:
-                        raise TypeError(f"invalid type in the seq {type(data)=} {data=}")
+                        raise TypeError(
+                            f"invalid type in the seq {type(data)=} {data=}")
 
                 return tuple(out)
 
             else:
-                raise TypeError(f"invalid type in the seq {type(part)=} {part=}")
+                raise TypeError(
+                    f"invalid type in the seq {type(part)=} {part=}")
 
         return tuple(out)
 

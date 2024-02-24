@@ -162,52 +162,6 @@ class LinuxLayout:
     _vk_table: dict[int, Key] = {}
     _char_table: dict[str, tuple[int, set[LinuxKeyData]]] = {}
 
-    @staticmethod
-    def _parse_raw_key(vk, name):
-        """
-        Parses a single key from the ``dumpkeys`` output.
-
-        :param int vk: The key code.
-
-        :param str name: The key name.
-
-        :return: a key representation
-        """
-        # this uses names to find the keys
-        # First try special keys...
-        for key in LinuxKeyEnum:
-            key: LinuxKeyData
-            if key.x_name == name:
-                return key
-
-        # ...then characters...
-        _, char = xorg_keysyms.SYMBOLS.get(
-            name.lstrip('+'),
-            (None, None)
-        )
-
-        if char:
-            return LinuxKeyData.from_char(char, vk=vk)
-
-        # things with "incorrect" names
-        mapped_name = {
-                'one': '1',
-                'two': '2',
-                'three': '3',
-                'four': '4',
-                'five': '5',
-                'six': '6',
-                'seven': '7',
-                'eight': '8',
-                'nine': '9',
-                'zero': '0'
-            }.get(name, None)
-
-        if mapped_name:
-            return LinuxKeyData.from_char(
-                mapped_name, vk=vk
-            )
-
     @classmethod
     @functools.lru_cache()
     def _load_vk_table(cls):
@@ -238,10 +192,12 @@ class LinuxLayout:
         for keycode, names in key_data[::-1]:
             vk = int(keycode)
             keys = tuple(
-                cls._parse_raw_key(vk, name)
+                _parse_raw_key(vk, name)
                 # todo possibly add the other 4 things too
                 for name in names.split()[:4]
             )
+
+            # todo un_dead the already dead keys ¨
 
             # if we don't find any keys, skip it
             if all(key is None for key in keys):
@@ -268,7 +224,7 @@ class LinuxLayout:
                 if key.char is None:
                     continue
 
-                cls._char_table[key.char] = (
+                cls._char_table[key.get_resulting_char()] = (
                     vk, modifier_keys
                 )
 
@@ -315,6 +271,54 @@ class LinuxLayout:
     @classmethod
     def char_in_layout(cls, char: str) -> bool:
         return char in cls._char_table
+
+
+def _parse_raw_key(vk, raw_name):
+    """
+    Parses a single key from the ``dumpkeys`` output.
+
+    :param int vk: The key code.
+
+    :param str raw_name: The key name.
+
+    :return: a key representation
+    """
+    # https://manpages.ubuntu.com/manpages/lunar/man5/keymaps.5.html
+    # the + at the start of a name means that it's affected by caps
+
+    # this uses names to find the keys
+    # First try special keys...
+    for key in LinuxKeyEnum:
+        key: LinuxKeyData
+        if key.x_name == raw_name:
+            return key
+
+    name = {
+        'one': '1',
+        'two': '2',
+        'three': '3',
+        'four': '4',
+        'five': '5',
+        'six': '6',
+        'seven': '7',
+        'eight': '8',
+        'nine': '9',
+        'zero': '0'
+    }.get(raw_name, raw_name)
+
+    # ...then characters...
+    _, char = xorg_keysyms.SYMBOLS.get(
+        name.lstrip('+'),
+        (None, None)
+    )
+
+    if char:
+        return LinuxKeyData.from_char(
+            char,
+            vk=vk,
+            x_name=name,
+            caps_lock_able=raw_name.startswith("+")
+        )
 
 
 def _init_layout():

@@ -23,20 +23,6 @@ class Keyboard:
     # todo add a wait func
     #   waits for specific hotkey
 
-    # todo add a record functionality
-    #   record sequences
-    #       record for n sec
-    #       record until stop_record is called
-    #       record n presses
-    #   replay
-
-    # todo add a reverse keycode presses to char
-    #   so a unicode seq of presses
-    #   (ctrl, shift, u, a, 2, 1, enter) => "\ua21"
-    #   (shift, a) => "A"
-    #   (¨, ¨) => "¨"
-    #   (¨, " ") => "¨"
-
     # todo add a word listener
     #   listens for a word
     #   calls a callback when detected

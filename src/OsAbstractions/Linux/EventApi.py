@@ -14,8 +14,6 @@ DEVICE_PATHS = []
 SUPPRESS = False
 
 
-# ALLOW_UNKNOWN_KEYCODES = False
-
 # todo make into args
 #   somehow make into args for the platform
 #   instead of consts
@@ -163,11 +161,6 @@ class LinuxEventApi(EventApi):
                     key = key_opt
                     break
             else:
-                # if not ALLOW_UNKNOWN_KEYCODES:
-                #     raise TypeError(
-                #         f"unknown keycode detected {vk:=} {raw_event:=}"
-                #     )
-
                 key = LinuxKeyData.from_vk(vk)
 
         # print(key, modifier_keys)

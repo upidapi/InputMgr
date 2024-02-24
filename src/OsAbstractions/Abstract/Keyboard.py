@@ -40,7 +40,17 @@ class Down:
 
 class StateData:
     """
+    Note: this is evaluated lazily so only the key
+    that are explicitly mentioned to be needed are
+    actually pressed and unpressed
 
+    StateData((1), {2}, {})
+    StateData((1), {}, {})
+    =>
+    Down(2), 1, 1, Up(2),
+
+    setting the need_pressed and need_unpressed doesn't
+    guarantee that the key is pressed without anything elseasdlasöidjflkasjdflökasjdflökjasdölfkjasöldkfjalöskdjfölkasjdfölkasjdölfkjaöslkjdfasfldkö
     """
     def __init__(
             self,
@@ -125,7 +135,6 @@ class AbsKeyboard(ABC):
     #     """
     #     raise NotImplementedError
 
-    # todo handle unicode keys
     @classmethod
     @abstractmethod
     def calc_buttons_for_char(cls, char: str) -> StateData:
@@ -180,8 +189,6 @@ class AbsKeyboard(ABC):
             key_data: KeyData,
     ) -> str:
         """
-        todo handle Up / Down events
-
         Calcs the resulting char for a button.
         A char might be a combination of several presses and held
         down buttons.
@@ -196,4 +203,6 @@ class AbsKeyboard(ABC):
 
         one press can result in multiple characters like
         "¨" + "¨" => "¨¨"  (windows)
+
+        this works using the KeySend events
         """

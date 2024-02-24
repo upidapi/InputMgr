@@ -1631,9 +1631,8 @@ SYMBOLS = {
     'zerosuperior': (0x1002070, u'\u2070'),
     'zstroke': (0x10001b6, u'\u01B6')}
 
-# todo "is this all?"
-#  I think so since it's compiled from the kernel code
 # maps from dead key to non-dead version of said dead key
+# It's all sice its compiled from the kernel code
 DEAD_KEYS = {
     u'\u0307': u'\u02D9',
     u'\u030A': u'\u02DA',
@@ -1698,7 +1697,17 @@ _CHARS = {
 
 
 def is_dead(char):
-    return char in DEAD_KEYS.keys()
+    # not an exhaustive list just the ones i have on my layout
+    # If anyone can figure out how to reliably determine
+    # if a key is dead or not, please replace/fix this
+
+    return char in (
+        "\u0301",
+        "\u0300",
+        "\u0308",
+        "\u005e",
+        "\u007e",
+    )
 
 
 def unicode_char_to_name(unicode_char):

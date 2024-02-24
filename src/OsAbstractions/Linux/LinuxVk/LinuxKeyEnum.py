@@ -45,6 +45,12 @@ class LinuxKeyEnum(VkEnum, enum_item_type=LinuxKeyData):
     # </editor-fold>
 
     # <editor-fold desc="Modifiers">
+    # https://superuser.com/questions/428945/defining-keyboard-shortcuts-involving-the-fn-key
+    # NOTE: the "fn" key is a hardware level modifier
+    # so the key is never sent to the os
+    # i.e. pressing fn + f1 makes the keyboard directly send f13
+    # instead of sending f1 that the os interoperates as f13
+
     alt = alt_l = _k_from_name("KEY_LEFTALT", "Alt")
 
     # alt_r is just alt_gr
@@ -147,6 +153,12 @@ class LinuxKeyEnum(VkEnum, enum_item_type=LinuxKeyData):
     # </editor-fold>
 
 
+# these are special since they affect the resulting char when pressed
+# they also don't count to dead chars (ignored):
+# pressing dead, dead => non-dead version of dead
+# pressing dead, mod, dead => non-dead version of dead
+# pressing dead, mod, mod, dead => non-dead version of dead
+# pressing dead, non-mod, dead => dead + non-mod
 LINUX_VK_MODIFIER_MAP: dict[int, LinuxKeyData] = {
     LinuxKeyEnum.alt.vk: LinuxKeyEnum.alt,
     LinuxKeyEnum.alt_l.vk: LinuxKeyEnum.alt,
@@ -156,6 +168,10 @@ LINUX_VK_MODIFIER_MAP: dict[int, LinuxKeyData] = {
     LinuxKeyEnum.shift.vk: LinuxKeyEnum.shift,
     LinuxKeyEnum.shift_l.vk: LinuxKeyEnum.shift,
     LinuxKeyEnum.shift_r.vk: LinuxKeyEnum.shift,
+
+    LinuxKeyEnum.ctrl.vk: LinuxKeyEnum.ctrl,
+    LinuxKeyEnum.ctrl_l.vk: LinuxKeyEnum.ctrl,
+    LinuxKeyEnum.ctrl_r.vk: LinuxKeyEnum.ctrl,
 
     # todo add more modifiers (like meta, fn)
     #  search up a list of all modifiers on xorg

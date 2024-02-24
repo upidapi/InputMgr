@@ -44,7 +44,7 @@ class EventApi(ABC):
                         return True
 
                 if event == blocked_event:
-                    # todo make it so that a block sent at ms 100
+                    # todo make it so that a block sent at eg ms 100
                     #  only can block events after that
                     cls._blocked_events.remove(blocked_event)
                     return True
@@ -54,9 +54,6 @@ class EventApi(ABC):
     @classmethod
     def dispatch_event(cls, *event: any_event) -> None:
         """ helper function to add a new event to the event stack """
-
-        # todo fix this so that it sends the "send" event on the keydown
-        #   nvm dont do that, its platform dependant
 
         # this logic was written for windows
         # if isinstance(event, KeyboardEvent.KeySend):

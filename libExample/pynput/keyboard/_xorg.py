@@ -310,7 +310,7 @@ class Controller(NotifierMixin, _base.Controller):
         """
         # pylint: disable=W0702; we want to ignore errors
         try:
-            keysym, _ = SYMBOLS[CHARS[key.combining]]
+            keysym, _ = SYMBOLS[CHARS[key.base_form]]
         except:
             return None
         # pylint: enable=W0702

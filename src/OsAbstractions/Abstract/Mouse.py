@@ -22,6 +22,9 @@ class AbsMouse(ABC):
 
     buttons = Literal["left", "middle", "right"]
 
+    # these are ignored for hotkeys
+    button_vks: set[int] = set()
+
     @staticmethod
     @abstractmethod
     def press_button(button: buttons, down: bool):

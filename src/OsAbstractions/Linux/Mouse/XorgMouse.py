@@ -8,6 +8,8 @@ import Xlib.ext.xtest
 import Xlib.X
 import Xlib.protocol
 
+from src.OsAbstractions.Linux.LinuxVk import LinuxKeyEnum
+
 
 class X11Error(Exception):
     """An error that is thrown at the end of a code block managed by a
@@ -112,6 +114,12 @@ class LinuxXLibMouse(AbsMouse):
                 Xlib.X.ButtonPress if down else Xlib.X.ButtonRelease,
                 button
             )
+
+    button_vks = {
+        LinuxKeyEnum.mouse_left.vk,
+        LinuxKeyEnum.mouse_middle.vk,
+        LinuxKeyEnum.mouse_right.vk,
+    }
 
     @classmethod
     def press_button(cls, button: AbsMouse.buttons, down: bool):

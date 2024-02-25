@@ -52,8 +52,6 @@ from src.Events._BaseEvent import _BaseEvent
 class _BaseKeyboardEvent(_BaseEvent):
     key_data: KeyData
 
-    # todo possibly add state (keys pressed) as data here
-
 
 @dataclass(frozen=True)
 class KeySend(_BaseKeyboardEvent):

@@ -73,7 +73,7 @@ class LinuxKeyEnum(VkEnum, enum_item_type=LinuxKeyData):
     shift_r = _k_from_name("KEY_RIGHTSHIFT", "Shift_R")
     # </editor-fold>
 
-    backspace = _k_from_name("SW_MUTE_DEVICE", "Delete")
+    backspace = _k_from_name("SW_MUTE_DEVICE", "Delete", char="\b")
     delete = _k_from_name("KEY_DELETE", "Remove")
     enter = _k_from_name("KEY_ENTER", "Return", char="\n")
     space = _k_from_name("KEY_SPACE", "space", char=' ')

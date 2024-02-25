@@ -39,23 +39,23 @@ import unicodedata
 # print_uc(ud.normalize('NFC', wierd_a))
 # print_uc(ud.normalize('NFD', wierd_a))
 import asyncio
-import time
-
-from src import LinuxKeyEnum, EventQueue, KeyboardEvent
-from src.Events import KeyboardEvents
-from src.Main import EventHandler
-from src.Main.EventHandler import print_event
-from src.Main.Keyboard import Keyboard
-from src.OsAbstractions.Abstract.Keyboard import StateData
-from src.OsAbstractions.Linux.LinuxVk.xorg_keysyms import name_to_unicode_char, \
-    DEAD_KEYS, is_dead
-
-time.sleep(3)
-
-data = r"""^¨~`aâ'a1.:aͣͣ"""
-
-
-for line in data.split("\n"):
-    Keyboard.typewrite(line, delta_press=0.01)
-    Keyboard.typewrite(StateData(("\n", ), {LinuxKeyEnum.shift.vk}))
-
+# import time
+#
+# from src import LinuxKeyEnum, EventQueue, KeyboardEvent
+# from src.Events import KeyboardEvents
+# from src.Main import EventPrinting
+# from src.Main.EventPrinting import print_event
+# from src.Main.Keyboard import Keyboard
+# from src.OsAbstractions.Abstract.Keyboard import StateData
+# from src.OsAbstractions.Linux.LinuxVk.xorg_keysyms import name_to_unicode_char, \
+#     DEAD_KEYS, is_dead
+#
+# time.sleep(3)
+#
+# data = r"""^¨~`aâ'a1.:aͣͣ"""
+#
+#
+# for line in data.split("\n"):
+#     Keyboard.typewrite(line, delta_press=0.01)
+#     Keyboard.typewrite(StateData(("\n", ), {LinuxKeyEnum.shift.vk}))
+#

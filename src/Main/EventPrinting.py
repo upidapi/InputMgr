@@ -1,5 +1,5 @@
 from src.Events import KeyboardEvent, MouseEvent
-from src.Main.EventQueue import EventQueue, EventDistributor
+from src.Main.EventQueue import EventQueue
 
 
 def print_event(
@@ -28,7 +28,10 @@ def print_event(
 
             vk = str(event.key_data.vk).ljust(4)
 
-            end_part = f' \"{event.chars}\"' if isinstance(event, KeyboardEvent.KeySend) else ''
+            end_part = \
+                f' \"{event.chars}\"' \
+                if isinstance(event, KeyboardEvent.KeySend) else \
+                ''
             print(f"{padded_event}{vk:<3} {f_char} {end_part}")
         return
 
@@ -59,17 +62,18 @@ async def print_events(
         keyboard_keyup=True,
         keyboard_key_send=True,
 ):
-    EventDistributor.add_callback(
-        lambda event: print_event(
-            event,
+    with EventQueue() as es:
+        async for event in es:
+            print_event(
+                event,
 
-            mouse_move,
-            mouse_click,
-            mouse_unclick,
-            mouse_scroll,
+                mouse_move,
+                mouse_click,
+                mouse_unclick,
+                mouse_scroll,
 
-            keyboard_keydown,
-            keyboard_keyup,
-            keyboard_key_send,
-        )
-    )
+                keyboard_keydown,
+                keyboard_keyup,
+                keyboard_key_send,
+            )
+

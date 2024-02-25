@@ -38,6 +38,7 @@ class EventDistributor:
             for event in _event_api.event_queue:
                 for callback in cls._event_callbacks:
                     callback(event)
+            _event_api.event_queue = []
 
             _event_api.fetch_new_events()
 
@@ -47,11 +48,9 @@ class EventDistributor:
 
     @classmethod
     def add_callback(cls, callback: Callable[[any_event], None]):
-        need_start = not cls._event_callbacks
-
         cls._event_callbacks.add(callback)
 
-        if need_start:
+        if not cls.running:
             asyncio.create_task(
                 cls.run_event_distributor()
             )
@@ -60,14 +59,55 @@ class EventDistributor:
     def remove_callback(cls, callback: Callable[[any_event], None]):
         cls._event_callbacks.remove(callback)
 
+        if not cls._event_callbacks:
+            cls.running = False
+
+# class EventDistributor:
+#     _event_callbacks = set()
+#
+#     @classmethod
+#     async def _run_event_distributor(cls):
+#         _event_api.start_listening()
+#
+#         while True:
+#             for event in _event_api.event_queue:
+#                 for callback in cls._event_callbacks:
+#                     callback(event)
+#             _event_api.event_queue = []
+#
+#             _event_api.fetch_new_events()
+#
+#             await asyncio.sleep(0.001)
+#
+#     # add a with poling rate
+#
+#     @classmethod
+#     def add_callback(cls, callback: Callable[[any_event], None]):
+#         if callback in cls._event_callbacks:
+#             raise ValueError(
+#                 f"callback: {callback} is already a registered function"
+#             )
+#
+#         cls._event_callbacks.add(callback)
+#
+#     @classmethod
+#     def remove_callback(cls, callback: Callable[[any_event], None]):
+#         try:
+#             cls._event_callbacks.remove(callback)
+#         except KeyError:
+#             raise ValueError(
+#                 f"cannot remove {callback} since is not registered"
+#             )
+#
+#     asyncio.create_task(
+#         _run_event_distributor()
+#     )
+
 
 # incase we run into some kind of error make sure
 # that the listener is stopped
 @atexit.register
 def _event_listening_cleanup():
-    if not EventDistributor.running:
-        return
-
     print("cleaning evnet_listener up due to exception")
 
     _event_api.stop_listening()
@@ -80,7 +120,11 @@ class EventQueue:
     avents are added to it when detected by the event handlers
     removed when read
     """
-    def __init__(self):
+    def __init__(
+            self,
+            # event_distributor: EventDistributor = None
+    ):
+        # self._event_distributor = event_distributor or EventDistributor()
         self._in_with = False
         self._running = False
         self.queued_events = []

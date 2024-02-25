@@ -1,6 +1,7 @@
 # import unicodedata as ud
 #
 #
+import traceback
 import unicodedata
 
 # chars = "^¨~`aâ'a1.:aͣͣ"
@@ -39,6 +40,9 @@ import unicodedata
 # print_uc(ud.normalize('NFC', wierd_a))
 # print_uc(ud.normalize('NFD', wierd_a))
 import asyncio
+
+from src.Main.EventPrinting import print_events
+
 # import time
 #
 # from src import LinuxKeyEnum, EventQueue, KeyboardEvent
@@ -59,3 +63,9 @@ import asyncio
 #     Keyboard.typewrite(line, delta_press=0.01)
 #     Keyboard.typewrite(StateData(("\n", ), {LinuxKeyEnum.shift.vk}))
 #
+
+
+async def main():
+    await print_events()
+
+asyncio.run(main())

@@ -3,31 +3,9 @@ import time
 
 from src.Events import KeyboardEvent, any_event, MouseEvent
 from src.Main.EventQueue import EventQueue
-from src.Main.Keyboard import Keyboard
+from src.Main.Keyboard import Keyboard, Hotkey
 from src.Main.Mouse import Mouse
 from src.OsAbstractions.Abstract.Keyboard import Down, LiteralVk
-
-
-class Hotkey:
-    def __init__(
-            self,
-            press,
-            along_with,
-            exclusive: bool = True,
-            ignore_mouse: bool = True
-    ):
-        self.press: int = press
-        self.along_with: set[int] = along_with
-        self.exclusive: bool = exclusive
-        self.ignore_mouse: bool = ignore_mouse
-
-    def __hash__(self):
-        return hash((
-            self.press,
-            sorted(list(self.along_with)),
-            self.exclusive,
-            self.ignore_mouse
-        ))
 
 
 class Recorder:

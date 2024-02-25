@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-import pynput.mouse
+import libExample.pynput.mouse
 import time
 
 from . import EventTest, darwin, win32, xorg
@@ -171,7 +171,7 @@ class MouseListenerTest(EventTest):
 
     def test_events(self):
         """Tests that events are correctly yielded"""
-        from pynput.mouse import Button, Events
+        from libExample.pynput.mouse import Button, Events
         with Events() as events:
             self.notify('Move the mouse')
             for event in events:

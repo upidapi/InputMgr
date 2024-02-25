@@ -20,7 +20,7 @@ import locale
 import sys
 import threading
 
-import pynput.keyboard
+import libExample.pynput.keyboard
 
 from six.moves import input
 
@@ -96,7 +96,7 @@ class KeyboardControllerTest(EventTest):
     def test_keys(self):
         """Asserts that all keys defined for the base keyboard interface are
         defined for the current platform"""
-        from pynput.keyboard._base import Key
+        from libExample.pynput.keyboard._base import Key
         for key in Key:
             self.assertTrue(
                 hasattr(pynput.keyboard.Key, key.name),

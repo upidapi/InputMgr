@@ -16,7 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 import numbers
-import pynput.mouse
+import libExample.pynput.mouse
 import time
 
 from . import EventTest
@@ -49,7 +49,7 @@ class MouseControllerTest(EventTest):
     def test_buttons(self):
         """Asserts that all buttons defined for the base mouse interface are
         defined for the current platform"""
-        from pynput.mouse._base import Button
+        from libExample.pynput.mouse._base import Button
         for button in Button:
             self.assertTrue(
                 hasattr(pynput.mouse.Button, button.name),

@@ -1,6 +1,6 @@
 # import unicodedata
 import unicodedata
-from typing import Iterator, Type
+from typing import Iterator, Type, Self
 
 
 class KeyData:
@@ -17,7 +17,9 @@ class KeyData:
 
         if char is not None:
             if vk is None:
-                raise ValueError("please also provide the vk when you provide char")
+                raise ValueError(
+                    "please also provide the vk when you provide char"
+                )
 
         self.vk: int = vk
         self.char: char = char
@@ -77,12 +79,47 @@ class KeyData:
     def __hash__(self):
         return hash(self._get_important_vars())
 
-    def join(self, key):
+    def join(self, key: Self):
         """
         joins self (a dead char)
         with another
+
+        self: dead char
+        self: dead char or normal char
+
+        join(^, a) => â
+        join(^, ^) => ^
+        join(^, " ") => ^
+        join(a, a) => ValueError("cant put normal char on another")
+        join(a, ^) => ValueError("cant put normal char on another")
         """
-        raise NotImplementedError
+        if not self.is_dead:
+            ValueError("cant put normal char on char")
+
+        if self.char is None:
+            ValueError("self needs to have a char to combine")
+
+        if key.char is None:
+            ValueError("key needs to have a char to combine")
+
+        if key.char in (self.char, " "):
+            # combine with self or space returns the non-dead
+            # version of it
+
+            return self.get_resulting_char()
+
+        combined = unicodedata.normalize(
+            "NFC",
+            self.char + key.char
+        )
+
+        if len(combined) != len(self.char) + len(key.char):
+            # chars combined, return the combined version
+            return combined
+
+        # if they don't successfully combine,
+        # then they combine to make nothing
+        return ""
 
     @classmethod
     def from_vk(cls, vk, **kwargs):

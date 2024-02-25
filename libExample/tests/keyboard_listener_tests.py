@@ -21,7 +21,7 @@ import six.moves.queue as queue
 import time
 import threading
 
-import pynput.keyboard
+import libExample.pynput.keyboard
 
 from . import EventTest, darwin, win32, xorg
 
@@ -158,7 +158,7 @@ class KeyboardListenerTest(EventTest):
 
     def test_modifier(self):
         """Tests that the modifier keys can be tapped"""
-        from pynput.keyboard import Key
+        from libExample.pynput.keyboard import Key
         for key in (
                 (Key.alt, Key.alt_l, Key.alt_r),
                 (Key.ctrl, Key.ctrl_l, Key.ctrl_r),
@@ -190,7 +190,7 @@ class KeyboardListenerTest(EventTest):
 
     def test_modifier_and_normal(self):
         """Tests that the modifier keys do not stick"""
-        from pynput.keyboard import Key
+        from libExample.pynput.keyboard import Key
         self.notify('Press a, <ctrl>, a')
         self.assert_keys(
             'Failed to register event',
@@ -268,7 +268,7 @@ class KeyboardListenerTest(EventTest):
 
     def test_events(self):
         """Tests that events are correctly yielded"""
-        from pynput.keyboard import Key, KeyCode, Events
+        from libExample.pynput.keyboard import Key, KeyCode, Events
         self.notify('Press a, b, a, <esc>')
 
         with Events() as events:

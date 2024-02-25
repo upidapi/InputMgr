@@ -22,7 +22,7 @@ import unittest
 
 from six.moves import input
 
-import pynput
+import libExample.pynput
 
 
 #: The name of the current backend

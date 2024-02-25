@@ -1,4 +1,4 @@
-# "borrowed" from pynput
+# "borrowed" from libExample.pynput
 
 SYMBOLS = {
     '0': (0x0030, u'\u0030'),
